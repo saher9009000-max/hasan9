@@ -1,7 +1,7 @@
 :root{
-  --primary:#06b6d4;
-  --primary-2:#0891b2;
-  --primary-soft:#cffafe;
+  --primary:#00acc1;
+  --primary-2:#00838f;
+  --primary-soft:#e0f7fa;
   --dark:#0f172a;
   --dark-2:#1e293b;
   --bg:#f0fdff;
@@ -12,6 +12,26 @@
   --ok:#10b981;
   --radius:16px;
   --radius-lg:22px;
+}
+
+body.dark-mode {
+  --bg: #090d16;
+  --card: #111827;
+  --text: #f8fafc;
+  --muted: #94a3b8;
+  --primary-soft: #164e63;
+}
+
+body.dark-mode .app-header,
+body.dark-mode .tabs,
+body.dark-mode .drop-zone,
+body.dark-mode .controls-card,
+body.dark-mode .result-card,
+body.dark-mode .side-panel,
+body.dark-mode .menu-panel {
+  background: #111827;
+  border-color: #1f2937;
+  color: #f8fafc;
 }
 
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -233,4 +253,20 @@ main{max-width:720px;margin:0 auto;padding:16px}
   .dz-icon{font-size:36px}
   .result-card{padding:12px}
   .result-thumb{width:46px;height:46px}
+}.btn-gear {
+  background: #112233;
+  border: 2px solid #164e63;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items:center;
+  justify-content:center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  transition: transform 0.15s, background 0.2s;
+}
+.btn-gear:active {
+  transform: scale(0.95);
 }
