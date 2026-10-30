@@ -9,11 +9,21 @@ const state = {
   files: [],
   settings: {
     imageQuality: 0.80,
-    maxSizeMB: 100,
+    maxSizeMB: 400,
     preview: true
-  },
-  pasteSuggestion: null
+  }
 };
+
+// تفعيل زر الوضع الداكن
+document.addEventListener('DOMContentLoaded', () => {
+  const darkModeBtn = $('#darkModeBtn');
+  if (darkModeBtn) {
+    darkModeBtn.onclick = () => {
+      document.body.classList.toggle('dark-mode');
+      darkModeBtn.textContent = document.body.classList.contains('dark-mode') ? '☀️' : '🌙';
+    };
+  }
+});
 
 /* ---------- أدوات مساعدة ---------- */
 const $ = s => document.querySelector(s);
