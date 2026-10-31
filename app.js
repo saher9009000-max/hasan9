@@ -318,18 +318,15 @@
       const key = $('apiKey').value.trim();
       const status = $('keyStatus');
       if (!key) { status.textContent = 'أدخل مفتاحاً أولاً.'; status.className = 'hint err'; return; }
-      status.textContent = 'جارٍ التحقق...'; status.className = 'hint'; $('saveKey').disabled = true;
+      status.textContent = 'جارٍ الحفظ...'; status.className = 'hint'; $('saveKey').disabled = true;
       try {
-        const res = await validateKey(key);
-        if (!res.ok) { status.textContent = 'مفتاح غير صالح (' + res.error + ')'; status.className = 'hint err'; return; }
         await setApiKey(key);
-        status.textContent = '✅ تم التحقق والحفظ المشفّر'; status.className = 'hint ok';
-        if (res.models?.length) {
-          const set = new Set([...state.settings.models, ...res.models]);
-          state.settings.models = Array.from(set).sort();
-          if (!state.settings.model) state.settings.model = state.settings.models[0];
-          saveSettings(); renderModels();
-        }
+        status.textContent = '✅ تم حفظ المفتاح بنجاح'; status.className = 'hint ok';
+        const defaultModels = ['gpt-4o-mini', 'gpt-4o', 'gpt-3.5-turbo'];
+        const set = new Set([...state.settings.models, ...defaultModels]);
+        state.settings.models = Array.from(set).sort();
+        if (!state.settings.model) state.settings.model = state.settings.models[0];
+        saveSettings(); renderModels();
       } catch (e) { status.textContent = 'خطأ: ' + e.message; status.className = 'hint err'; }
       finally { $('saveKey').disabled = false; }
     });
