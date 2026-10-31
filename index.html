@@ -36,7 +36,6 @@
   <!-- ==================== الصور ==================== -->
   <section id="tab-images" class="tab-content active">
     <div class="drop-zone" id="imageDrop">
-      <div class="dz-icon">🖼️</div>
       <p>اسحب الصور هنا أو انقر للاختيار</p>
       <span class="dz-hint">PNG · JPG · WEBP · GIF — حتى <span id="imgLimitLabel">400</span> م.ب</span>
       <input type="file" id="imageInput" accept="image/*" multiple hidden>
@@ -116,18 +115,6 @@
   </section>
 </main>
 
-<!-- مودال لصق AI -->
-<div id="pasteModal" class="modal hidden">
-  <div class="modal-card">
-    <h3>✦ اقتراح الذكاء الاصطناعي</h3>
-    <div id="pasteBody" class="paste-body">جارٍ التحليل…</div>
-    <div class="modal-actions">
-      <button class="btn-dark" id="pasteApply">تطبيق</button>
-      <button class="btn-ghost" id="pasteClose">إلغاء</button>
-    </div>
-  </div>
-</div>
-
 <!-- لوحة سيتغ -->
 <div id="settingsPanel" class="side-panel hidden">
   <div class="panel-head">
@@ -140,9 +127,7 @@
   <label>حد الحجم العام (م.ب)
     <input type="number" id="setMaxSize" class="rounded-input" value="100" min="1">
   </label>
-  <label>مفتاح API (اختياري)
-    <input type="text" id="setApiKey" class="rounded-input" placeholder="sk-...">
-  </label>
+
   <label class="switch-row">
     <span>معاينة قبل التنزيل</span>
     <input type="checkbox" id="setPreview" checked>
