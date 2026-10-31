@@ -575,4 +575,10 @@ window.addEventListener('load', () => {
     console.warn('lamejs لم يُحمَّل — معالجة الصوت معطّلة');
   if (typeof JSZip === 'undefined')
     console.warn('JSZip لم يُحمَّل — تجميع ZIP معطّل');
-});
+});$('#audioResetBtn').onclick = () => {
+  $('#trimStart').value = 0;
+  $('#trimEnd').value = 100;
+  updateTrim();
+  toast('تمت إعادة الضبط');
+};
+$('#audioSaveBtn').onclick = () => $('#audioProcess').click();
