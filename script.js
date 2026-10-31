@@ -232,6 +232,48 @@ async function prepareAudioSliders(){
   $('#trimEnd').value = 100;
   $('#trimStartLabel').textContent = '0:00';
   $('#trimEndLabel').textContent = fmtTime(audioMeta.duration);
+  
+  // رسم الموجة الصوتية عند تحميل الملف
+  renderRealWaveform(first);
+}
+
+// دالة رسم الموجة الصوتية الحقيقية على الـ Canvas
+async function renderRealWaveform(file) {
+  const canvas = $('#audioCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const width = canvas.width;
+  const height = canvas.height;
+
+  ctx.fillStyle = '#0f172a';
+  ctx.fillRect(0, 0, width, height);
+
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const AC = window.AudioContext || window.webkitAudioContext;
+    const ctxAudio = new AC();
+    const audioBuffer = await ctxAudio.decodeAudioData(arrayBuffer);
+    const rawData = audioBuffer.getChannelData(0);
+    const samples = 60;
+    const blockSz = Math.floor(rawData.length / samples);
+    const barWidth = width / samples;
+
+    for (let i = 0; i < samples; i++) {
+      let sum = 0;
+      for (let j = 0; j < blockSz; j++) {
+        sum += Math.abs(rawData[i * blockSz + j]);
+      }
+      const val = sum / blockSz;
+      const h = Math.min(height, Math.max(4, val * height * 1.5));
+      const y = (height - h) / 2;
+
+      // تلوين الجزء المحدد باللون السماوي والباقي بالرمادي كما في التصميم المطلوب
+      ctx.fillStyle = i < 15 ? '#38bdf8' : '#475569';
+      ctx.fillRect(i * barWidth + 2, y, barWidth - 4, h);
+    }
+  } catch (e) {
+    console.warn('تعذر رسم الموجة الحقيقية:', e);
+  }
 }
 
 $('#trimStart').oninput = updateTrim;
