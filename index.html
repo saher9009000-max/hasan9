@@ -70,14 +70,29 @@
       <span class="dz-hint">MP3 · WAV · M4A · OGG — حتى <span id="audLimitLabel">100</span> م.ب</span>
       <input type="file" id="audioInput" accept="audio/*" multiple hidden>
     </div>
-    <div class="controls-card">
-      <div class="control-row">
-        <label>نطاق القص</label>
-        <div class="trim-wrap">
+    <div class="controls-card audio-editor-card">
+      <div class="audio-top-bar">
+        <div class="time-box" id="trimStartLabel">00:00</div>
+        <div class="time-box" id="trimEndLabel">00:15</div>
+        <button class="btn-icon-sm" id="audioResetBtn" aria-label="إعادة ضبط">🔄</button>
+        <button class="btn-icon-sm" id="audioSaveBtn" aria-label="حفظ">💾</button>
+      </div>
+      <div class="waveform-container">
+        <div class="timeline-ruler">
+          <span>0:05</span><span>0:10</span><span>0:15</span><span>0:20</span><span>0:25</span><span>0:30</span>
+        </div>
+        <canvas id="audioCanvas" width="600" height="90"></canvas>
+        <div class="trim-wrap" style="display:none;">
           <input type="range" id="trimStart" min="0" max="100" value="0" class="range">
           <input type="range" id="trimEnd" min="0" max="100" value="100" class="range">
         </div>
-        <div class="trim-times"><span id="trimStartLabel">0:00</span><span id="trimEndLabel">--:--</span></div>
+      </div>
+      <div class="audio-player-controls">
+        <button class="player-btn" id="audioZoomIn" aria-label="تكبير">➕</button>
+        <button class="player-btn" id="audioRewind" aria-label="ترجيع">⏪</button>
+        <button class="player-btn play-main" id="audioPlayBtn" aria-label="تشغيل">▶️</button>
+        <button class="player-btn" id="audioForward" aria-label="تقديم">⏩</button>
+        <button class="player-btn" id="audioZoomOut" aria-label="تصغير">➖</button>
       </div>
       <div class="control-row">
         <label>الجودة (kbps)</label>
@@ -95,6 +110,87 @@
     </div>
     <div id="audioResults" class="results"></div>
   </section>
+/* Audio Editor UI Custom Styles */
+.audio-top-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.time-box {
+  background: var(--dark);
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 14px;
+  font-family: monospace;
+}
+.btn-icon-sm {
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  color: var(--text);
+}
+.btn-icon-sm:hover {
+  background: var(--primary-soft);
+}
+.waveform-container {
+  background: #0f172a;
+  border-radius: 12px;
+  padding: 10px;
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+.timeline-ruler {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #38bdf8;
+  padding: 0 6px 6px 6px;
+}
+#audioCanvas {
+  width: 100%;
+  height: 90px;
+  display: block;
+}
+.audio-player-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  background: #0f172a;
+  padding: 10px;
+  border-radius: 999px;
+  margin-bottom: 16px;
+}
+.player-btn {
+  background: transparent;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: #fff;
+  transition: background 0.2s;
+}
+.player-btn:hover {
+  background: rgba(255,255,255,0.1);
+}
+.player-btn.play-main {
+  width: 44px;
+  height: 44px;
+  border: 2px solid #fff;
+  font-size: 20px;
+}
 
   <!-- ==================== الملفات ==================== -->
   <section id="tab-files" class="tab-content">
