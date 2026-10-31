@@ -117,7 +117,7 @@ main{max-width:720px;margin:0 auto;padding:16px}
 
 /* ============= Drop zone ============= */
 .drop-zone{
-  background:#fff;border:2px dashed #a5f3fc;border-radius:var(--radius-lg);
+  background:#e0f7fa;border:2px dashed #a5f3fc;border-radius:var(--radius-lg);
   padding:38px 20px;text-align:center;cursor:pointer;
   transition:all .2s;margin-bottom:14px;
 }
