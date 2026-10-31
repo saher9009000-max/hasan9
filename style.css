@@ -273,10 +273,12 @@ main{max-width:720px;margin:0 auto;padding:16px}
 .btn-gear:active {
   transform: scale(0.95);
 }
+
 /* Audio Editor UI Custom Styles */
 .audio-top-bar {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 8px;
   margin-bottom: 14px;
 }
@@ -312,7 +314,7 @@ main{max-width:720px;margin:0 auto;padding:16px}
 .timeline-ruler {
   display: flex;
   justify-content: space-between;
-  font-size: 11px;
+  font-size: 10px;
   color: #38bdf8;
   padding: 0 6px 6px 6px;
 }
