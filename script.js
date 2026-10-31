@@ -26,7 +26,8 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /* ---------- أدوات مساعدة ---------- */
-const $= s => document.querySelector(s); const$$ = s => document.querySelectorAll(s);
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
 const fmtSize = b => {
   if (b < 1024) return b + ' B';
   if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
@@ -38,10 +39,27 @@ const fmtTime = s => {
   return m + ':' + String(sec).padStart(2,'0');
 };
 function toast(msg, err=false){
-  const t = $('#toast'); if (!t) return; t.textContent = msg; t.className = 'toast' + (err ? ' error' : ''); clearTimeout(t._t); t._t = setTimeout(() => t.classList.add('hidden'), 2600); } function download(blob, name){ const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(url), 4000); }  /* ---------- تبديل التبويبات ---------- */ $$('.tab').forEach(tab => {
+  const t = $('#toast'); 
+  if (!t) return; 
+  t.textContent = msg; 
+  t.className = 'toast' + (err ? ' error' : ''); 
+  clearTimeout(t._t); 
+  t._t = setTimeout(() => t.classList.add('hidden'), 2600); 
+} 
+function download(blob, name){ 
+  const url = URL.createObjectURL(blob); 
+  const a = document.createElement('a'); 
+  a.href = url; 
+  a.download = name; 
+  a.click(); 
+  setTimeout(() => URL.revokeObjectURL(url), 4000); 
+}
+
+/* ---------- تبديل التبويبات ---------- */
+$$('.tab').forEach(tab => {
   tab.onclick = () => {
-    $$('.tab').forEach(t => t.classList.remove('active'));$$
-('.tab-content').forEach(c => c.classList.remove('active'));
+    $$('.tab').forEach(t => t.classList.remove('active'));
+    $$('.tab-content').forEach(c => c.classList.remove('active'));
     tab.classList.add('active');
     const targetTab = $('#tab-' + tab.dataset.tab);
     if (targetTab) targetTab.classList.add('active');
@@ -316,4 +334,104 @@ function updateTrim(){
   
   const startLbl = $('#trimStartLabel');
   const endLbl = $('#trimEndLabel');
-  if (startLbl) startLbl.textContent = fmtTime(st
+  if (startLbl) startLbl.textContent = fmtTime(st);
+  if (endLbl) endLbl.textContent = fmtTime(en);
+}
+
+const trimStartEl = $('#trimStart');
+const trimEndEl = $('#trimEnd');
+if (trimStartEl) trimStartEl.oninput = updateTrim;
+if (trimEndEl) trimEndEl.oninput = updateTrim;
+
+/* ============================================================
+   تفعيل وتشغيل أزرار محرر الصوت والتحكم
+   ============================================================ */
+let previewAudio = null;
+
+const audioResetBtn = $('#audioResetBtn');
+if (audioResetBtn) {
+  audioResetBtn.onclick = () => {
+    const tStart = $('#trimStart');
+    const tEnd = $('#trimEnd');
+    if (tStart) tStart.value = 0;
+    if (tEnd) tEnd.value = 100;
+    updateTrim();
+    toast('تمت إعادة الضبط');
+  };
+}
+
+const audioSaveBtn = $('#audioSaveBtn');
+if (audioSaveBtn) {
+  audioSaveBtn.onclick = () => {
+    const procBtn = $('#audioProcess');
+    if (procBtn) procBtn.click();
+  };
+}
+
+const playBtn = $('#audioPlayBtn');
+if (playBtn) {
+  playBtn.onclick = () => {
+    if (!audioMeta || !audioMeta.file) {
+      return toast('لا يوجد صوت للتشغيل', true);
+    }
+    if (!previewAudio) {
+      previewAudio = new Audio(URL.createObjectURL(audioMeta.file));
+    }
+    if (previewAudio.paused) {
+      let [start, end] = getTrimRange();
+      if (isNaN(previewAudio.currentTime) || previewAudio.currentTime < start || previewAudio.currentTime >= end) {
+        previewAudio.currentTime = start;
+      }
+      previewAudio.play().then(() => {
+        playBtn.textContent = '⏸️';
+      }).catch(e => toast('فشل تشغيل الصوت: ' + e.message, true));
+
+      previewAudio.ontimeupdate = () => {
+        if (previewAudio.currentTime >= end) {
+          previewAudio.pause();
+          previewAudio.currentTime = start;
+          playBtn.textContent = '▶️';
+        }
+      };
+    } else {
+      previewAudio.pause();
+      playBtn.textContent = '▶️';
+    }
+  };
+}
+
+const rewindBtn = $('#audioRewind');
+if (rewindBtn) {
+  rewindBtn.onclick = () => {
+    if (previewAudio) {
+      let [start] = getTrimRange();
+      previewAudio.currentTime = Math.max(start, previewAudio.currentTime - 5);
+      toast('ترجيع 5 ثوانٍ');
+    } else {
+      toast('قم بتشغيل الصوت أولاً', true);
+    }
+  };
+}
+
+const forwardBtn = $('#audioForward');
+if (forwardBtn) {
+  forwardBtn.onclick = () => {
+    if (previewAudio && audioMeta) {
+      let [, end] = getTrimRange();
+      previewAudio.currentTime = Math.min(end, previewAudio.currentTime + 5);
+      toast('تقديم 5 ثوانٍ');
+    } else {
+      toast('قم بتشغيل الصوت أولاً', true);
+    }
+  };
+}
+
+const zoomInBtn = $('#audioZoomIn');
+if (zoomInBtn) {
+  zoomInBtn.onclick = () => toast('تم تكبير عرض الموجة');
+}
+
+const zoomOutBtn = $('#audioZoomOut');
+if (zoomOutBtn) {
+  zoomOutBtn.onclick = () => toast('تم تصغير عرض الموجة');
+}
