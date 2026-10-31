@@ -82,7 +82,7 @@ document.addEventListener('click', (e) => {
   }
 });
 
-/* ---------- سيتغ ---------- */
+/* ---------- الإعدادات ---------- */
 const settingsBtn = $('#settingsBtn');
 if (settingsBtn) settingsBtn.onclick = () => { const panel = $('#settingsPanel'); if (panel) panel.classList.remove('hidden'); };
 const settingsClose = $('#settingsClose');
@@ -262,6 +262,12 @@ setupDrop('#audioDrop','#audioInput', async files => {
   renderAudioQueue();
 });
 
+function renderAudioQueue() {
+  const box = $('#audioResults');
+  if (!box || !state.audio.length) return;
+  // يمكن ترك مساحة عرض قائمة ملفات الصوت إن وجدت
+}
+
 async function prepareAudioSliders(){
   if (!state.audio.length) return;
   const first = state.audio[0];
@@ -342,6 +348,60 @@ const trimStartEl = $('#trimStart');
 const trimEndEl = $('#trimEnd');
 if (trimStartEl) trimStartEl.oninput = updateTrim;
 if (trimEndEl) trimEndEl.oninput = updateTrim;
+
+function getTrimRange() {
+  if (!audioMeta) return [0, 0];
+  const trimStart = $('#trimStart');
+  const trimEnd = $('#trimEnd');
+  const s = trimStart ? +trimStart.value : 0;
+  const e = trimEnd ? +trimEnd.value : 100;
+  const st = (s / 100) * audioMeta.duration;
+  const en = (e / 100) * audioMeta.duration;
+  return [st, en];
+}
+
+function audioBufferToWavBlob(buffer) {
+  const numOfChan = buffer.numberOfChannels;
+  const sampleRate = buffer.sampleRate;
+  const format = 1;
+  const bitDepth = 16;
+  const resultBuffers = [];
+  for (let i = 0; i < buffer.numberOfChannels; i++) {
+    resultBuffers.push(buffer.getChannelData(i));
+  }
+  const length = resultBuffers[0].length * numOfChan * 2 + 44;
+  const out = new DataView(new ArrayBuffer(length));
+  let offset = 0;
+  
+  function writeString(str) {
+    for (let i = 0; i < str.length; i++) {
+      out.setUint8(offset++, str.charCodeAt(i));
+    }
+  }
+  
+  writeString('RIFF');
+  out.setUint32(offset, length - 8, true); offset += 4;
+  writeString('WAVE');
+  writeString('fmt ');
+  out.setUint32(offset, 16, true); offset += 4;
+  out.setUint16(offset, format, true); offset += 2;
+  out.setUint16(offset, numOfChan, true); offset += 2;
+  out.setUint32(offset, sampleRate, true); offset += 4;
+  out.setUint32(offset, sampleRate * numOfChan * (bitDepth / 8), true); offset += 4;
+  out.setUint16(offset, numOfChan * (bitDepth / 8), true); offset += 2;
+  out.setUint16(offset, bitDepth, true); offset += 2;
+  writeString('data');
+  out.setUint32(offset, length - offset - 4, true); offset += 4;
+  
+  for (let i = 0; i < resultBuffers[0].length; i++) {
+    for (let channel = 0; channel < numOfChan; channel++) {
+      let sample = Math.max(-1, Math.min(1, resultBuffers[channel][i]));
+      sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767)|0;
+      out.setInt16(offset, sample, true); offset += 2;
+    }
+  }
+  return new Blob([out.buffer], { type: 'audio/wav' });
+}
 
 /* ============================================================
    تفعيل وتشغيل أزرار محرر الصوت والتحكم
@@ -434,4 +494,73 @@ if (zoomInBtn) {
 const zoomOutBtn = $('#audioZoomOut');
 if (zoomOutBtn) {
   zoomOutBtn.onclick = () => toast('تم تصغير عرض الموجة');
+}
+
+const audioProcessBtn = $('#audioProcess');
+if (audioProcessBtn) {
+  audioProcessBtn.onclick = async () => {
+    if (!audioMeta || !audioMeta.file) return toast('لا يوجد ملف صوتي للمعالجة', true);
+    toast('جارٍ معالجة وقص الصوت…');
+    try {
+      const arrayBuffer = await audioMeta.file.arrayBuffer();
+      const AC = window.AudioContext || window.webkitAudioContext;
+      const ctx = new AC();
+      const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+      
+      let [startTime, endTime] = getTrimRange();
+      if (endTime <= startTime) endTime = audioMeta.duration;
+      
+      const startSample = Math.floor(startTime * audioBuffer.sampleRate);
+      const endSample = Math.floor(endTime * audioBuffer.sampleRate);
+      const durationSamples = endSample - startSample;
+      
+      if (durationSamples <= 0) throw new Error('مدة القص غير صالحة');
+      
+      const newBuffer = ctx.createBuffer(audioBuffer.numberOfChannels, durationSamples, audioBuffer.sampleRate);
+      for (let i = 0; i < audioBuffer.numberOfChannels; i++) {
+        const chanData = audioBuffer.getChannelData(i);
+        const newChanData = newBuffer.getChannelData(i);
+        for (let j = 0; j < durationSamples; j++) {
+          newChanData[j] = chanData[startSample + j] || 0;
+        }
+      }
+      
+      const wavBlob = audioBufferToWavBlob(newBuffer);
+      const outName = audioMeta.file.name.replace(/\.[^.]+$/, '') + '_processed.wav';
+      
+      const box = $('#audioResults');
+      if (box) {
+        box.innerHTML = `
+          <div class="result-card">
+            <div class="result-thumb">🎵</div>
+            <div class="result-info">
+              <div class="result-name">${outName}</div>
+              <div class="result-meta">${fmtSize(wavBlob.size)} · تم القص بنجاح</div>
+            </div>
+            <div class="result-actions">
+              <button class="dl-btn" id="dlAudioFinal">تنزيل</button>
+            </div>
+          </div>`;
+        $('#dlAudioFinal').onclick = () => download(wavBlob, outName);
+      }
+      toast('تمت معالجة الصوت بنجاح!');
+    } catch (err) {
+      toast('خطأ في معالجة الصوت: ' + err.message, true);
+    }
+  };
+}
+
+const ringtoneBtn = $('#ringtoneBtn');
+if (ringtoneBtn) {
+  ringtoneBtn.onclick = () => {
+    const tStart = $('#trimStart');
+    const tEnd = $('#trimEnd');
+    if (tStart && tEnd) {
+      tStart.value = 0;
+      tEnd.value = Math.min(100, Math.round((30 / (audioMeta ? audioMeta.duration : 30)) * 100));
+      updateTrim();
+      toast('تم ضبط النغمة على أول 30 ثانية');
+    }
+    if (audioProcessBtn) audioProcessBtn.click();
+  };
 }
