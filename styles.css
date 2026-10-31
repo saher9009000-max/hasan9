@@ -108,10 +108,10 @@ body.dark .result { background: #16202a; color: #e6eef5; border-color: #24414a; 
 
 /* ---------- Panel ---------- */
 .panel {
-  position: fixed; width: 328px; max-height: 78vh; overflow: auto;
+  position: fixed; width: 328px; max-height: calc(100vh - 30px); overflow-y: auto;
   background: #fff; color: #0e1e2b; border: 1px solid #e3e9ef; border-radius: 16px;
   box-shadow: 0 20px 48px rgba(0, 0, 0, .22); display: none; z-index: 2147483647;
-  font-size: 13px; direction: rtl;
+  font-size: 13px; direction: rtl; top: 15px !important;
 }
 .panel.open { display: block; animation: pop .18s ease-out; }
 body.dark .panel { background: #111820; color: #e6eef5; border-color: #243240; }
