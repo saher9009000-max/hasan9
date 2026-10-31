@@ -512,99 +512,68 @@ $('#fileProcess').onclick = async () => {
 };
 
 /* ============================================================
-   زر "لصق" — ذكاء اصطناعي لتحليل الحافظة
+   تفعيل وتشغيل أزرار التحكم بمحرر الصوت
    ============================================================ */
-$('#pasteBtn').onclick = async () => {
-  const modal = $('#pasteModal');
-  const body = $('#pasteBody');
-  modal.classList.remove('hidden');
-  body.innerHTML = 'جارٍ التحليل…';
-  state.pasteSuggestion = null;
+let previewAudio = null;
 
-  try {
-    if (!navigator.clipboard || !navigator.clipboard.read)
-      throw new Error('الحافظة غير متاحة على هذا المتصفح');
-
-    const items = await navigator.clipboard.read();
-    let found = null;
-
-    for (const item of items){
-      for (const type of item.types){
-        if (type.startsWith('image/')){
-          const blob = await item.getType(type);
-          found = { kind: 'image', blob, type };
-          break;
-        }
-        if (type.startsWith('audio/')){
-          const blob = await item.getType(type);
-          found = { kind: 'audio', blob, type };
-          break;
-        }
-        if (type === 'text/plain'){
-          const blob = await item.getType(type);
-          const text = await blob.text();
-          found = { kind: 'text', text };
-        }
+const playBtn = $('#audioPlayBtn');
+if (playBtn) {
+  playBtn.onclick = () => {
+    if (!audioMeta || !audioMeta.file) {
+      toast('لا يوجد صوت للتشغيل', true);
+      return;
+    }
+    if (!previewAudio) {
+      previewAudio = new Audio(URL.createObjectURL(audioMeta.file));
+    }
+    if (previewAudio.paused) {
+      let [start, end] = getTrimRange();
+      if (isNaN(previewAudio.currentTime) || previewAudio.currentTime < start || previewAudio.currentTime >= end) {
+        previewAudio.currentTime = start;
       }
-      if (found && found.kind !== 'text') break;
-    }
+      previewAudio.play().then(() => {
+        playBtn.textContent = '⏸️';
+      }).catch(e => toast('فشل تشغيل الصوت: ' + e.message, true));
 
-    if (!found) throw new Error('لا يوجد محتوى في الحافظة');
+      previewAudio.ontimeupdate = () => {
+        if (previewAudio.currentTime >= end) {
+          previewAudio.pause();
+          previewAudio.currentTime = start;
+          playBtn.textContent = '▶️';
+        }
+      };
+    } else {
+      previewAudio.pause();
+      playBtn.textContent = '▶️';
+    }
+  };
+}
 
-    if (found.kind === 'image'){
-      body.innerHTML = `🖼️ <b>صورة في الحافظة</b> (${found.type})<br>
-        <b>الاقتراح:</b> ضغط بجودة 80% مع الحفاظ على الأبعاد.<br>
-        <small>متوقع توفير 60-75% من الحجم.</small>`;
-      state.pasteSuggestion = { action: 'compressImage', blob: found.blob, type: found.type };
+const rewindBtn = $('#audioRewind');
+if (rewindBtn) {
+  rewindBtn.onclick = () => {
+    if (previewAudio) {
+      let [start] = getTrimRange();
+      previewAudio.currentTime = Math.max(start, previewAudio.currentTime - 5);
+      toast('ترجيع 5 ثوانٍ');
+    } else {
+      toast('قم بتشغيل الصوت أولاً', true);
     }
-    else if (found.kind === 'audio'){
-      body.innerHTML = `🎵 <b>ملف صوتي في الحافظة</b> (${found.type})<br>
-        <b>الاقتراح:</b> ضغط إلى MP3 بجودة 128kbps.<br>
-        <small>أو استخدم زر "نغمة موبايل" لقص أول 30 ثانية.</small>`;
-      state.pasteSuggestion = { action: 'compressAudio', blob: found.blob, type: found.type };
-    }
-    else {
-      const text = (found.text || '').trim();
-      if (/^https?:\/\//.test(text)){
-        body.innerHTML = `🔗 <b>رابط في الحافظة</b><br>
-          <small>${text.slice(0, 100)}</small><br>
-          <b>الاقتراح:</b> لصق الملف مباشرة غير مدعوم من الروابط لأسباب أمنية.`;
-      } else {
-        body.innerHTML = `📝 <b>نص في الحافظة</b> (${text.length} حرف)<br>
-          <b>الاقتراح:</b> لا يوجد ملف للمعالجة. انسخ صورة أو ملف صوتي أولاً.`;
-      }
-    }
-  } catch(err){
-    body.innerHTML = `⚠️ ${err.message}<br>
-      <small>تأكد من منح الإذن للمتصفح بالوصول إلى الحافظة.</small>`;
-  }
-};
+  };
+}
 
-$('#pasteClose').onclick = () => $('#pasteModal').classList.add('hidden');
-
-$('#pasteApply').onclick = async () => {
-  const s = state.pasteSuggestion;
-  $('#pasteModal').classList.add('hidden');
-  if (!s) return toast('لا يوجد اقتراح للتطبيق', true);
-
-  try {
-    if (s.action === 'compressImage'){
-      const name = 'clipboard-' + Date.now() + '.jpg';
-      const out = await compressImage(new File([s.blob], name, { type: s.type }),
-                                      state.settings.imageQuality, 'image/jpeg');
-      download(out, name);
-      toast('تم ضغط الصورة وتنزيلها ✓');
+const forwardBtn = $('#audioForward');
+if (forwardBtn) {
+  forwardBtn.onclick = () => {
+    if (previewAudio && audioMeta) {
+      let [, end] = getTrimRange();
+      previewAudio.currentTime = Math.min(end, previewAudio.currentTime + 5);
+      toast('تقديم 5 ثوانٍ');
+    } else {
+      toast('قم بتشغيل الصوت أولاً', true);
     }
-    else if (s.action === 'compressAudio'){
-      const ab = await s.blob.arrayBuffer();
-      const out = await encodeMP3(ab, 0, 300, 128);
-      download(out, 'clipboard-audio.mp3');
-      toast('تم ضغط الصوت وتنزيله ✓');
-    }
-  } catch(e){
-    toast('فشل التطبيق: ' + e.message, true);
-  }
-};
+  };
+}
 
 /* ============================================================
    تهيئة
