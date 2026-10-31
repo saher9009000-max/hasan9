@@ -1,5 +1,5 @@
 /* ============================================================
-   ملف برو — منطق التطبيق
+   ملف برو — منطق التطبيق (نسخة معدلة وآمنة)
    كل المعالجة تتم على جهاز المستخدم (خصوصية 100%)
    ============================================================ */
 
@@ -26,8 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /* ---------- أدوات مساعدة ---------- */
-const $ = s => document.querySelector(s);
-const $$ = s => document.querySelectorAll(s);
+const $ = s => document.querySelector(s); const $$ = s => document.querySelectorAll(s);
 const fmtSize = b => {
   if (b < 1024) return b + ' B';
   if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
@@ -39,59 +38,68 @@ const fmtTime = s => {
   return m + ':' + String(sec).padStart(2,'0');
 };
 function toast(msg, err=false){
-  const t = $('#toast');
-  t.textContent = msg;
-  t.className = 'toast' + (err ? ' error' : '');
-  clearTimeout(t._t);
-  t._t = setTimeout(() => t.classList.add('hidden'), 2600);
-}
-function download(blob, name){
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = name; a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 4000);
-}
-
-/* ---------- تبديل التبويبات ---------- */
-$$('.tab').forEach(tab => {
+  const t = $('#toast'); if (!t) return; t.textContent = msg; t.className = 'toast' + (err ? ' error' : ''); clearTimeout(t._t); t._t = setTimeout(() => t.classList.add('hidden'), 2600); } function download(blob, name){ const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(url), 4000); }  /* ---------- تبديل التبويبات ---------- */ $$('.tab').forEach(tab => {
   tab.onclick = () => {
-    $$('.tab').forEach(t => t.classList.remove('active'));
-    $$('.tab-content').forEach(c => c.classList.remove('active'));
+    $$('.tab').forEach(t => t.classList.remove('active'));$$
+('.tab-content').forEach(c => c.classList.remove('active'));
     tab.classList.add('active');
-    $('#tab-' + tab.dataset.tab).classList.add('active');
+    const targetTab = $('#tab-' + tab.dataset.tab);
+    if (targetTab) targetTab.classList.add('active');
   };
 });
 
 /* ---------- قائمة النقاط الثلاث ---------- */
-$('#menuBtn').onclick = (e) => {
-  e.stopPropagation();
-  $('#menuPanel').classList.toggle('hidden');
-};
+const menuBtn = $('#menuBtn');
+if (menuBtn) {
+  menuBtn.onclick = (e) => {
+    e.stopPropagation();
+    const menuPanel = $('#menuPanel');
+    if (menuPanel) menuPanel.classList.toggle('hidden');
+  };
+}
 document.addEventListener('click', (e) => {
-  if (!e.target.closest('.menu-container'))
-    $('#menuPanel').classList.add('hidden');
+  const menuPanel = $('#menuPanel');
+  if (menuPanel && !e.target.closest('.menu-container')) {
+    menuPanel.classList.add('hidden');
+  }
 });
 
 /* ---------- سيتغ ---------- */
-$('#settingsBtn').onclick = () => $('#settingsPanel').classList.remove('hidden');
-$('#settingsClose').onclick = () => $('#settingsPanel').classList.add('hidden');
-$('#setQuality').oninput = (e) => {
-  state.settings.imageQuality = e.target.value / 100;
-  $('#setQ').textContent = e.target.value + '%';
-};
-$('#setMaxSize').oninput = (e) => {
-  state.settings.maxSizeMB = +e.target.value || 100;
-  ['#imgLimitInput','#fileLimitInput'].forEach(s => $(s).value = state.settings.maxSizeMB);
-  ['#imgLimitLabel','#audLimitLabel','#fileLimitLabel'].forEach(s =>
-    $(s).textContent = state.settings.maxSizeMB);
-};
-$('#setPreview').onchange = (e) => state.settings.preview = e.target.checked;
+const settingsBtn = $('#settingsBtn');
+if (settingsBtn) settingsBtn.onclick = () => { const panel = $('#settingsPanel'); if (panel) panel.classList.remove('hidden'); };
+const settingsClose = $('#settingsClose');
+if (settingsClose) settingsClose.onclick = () => { const panel = $('#settingsPanel'); if (panel) panel.classList.add('hidden'); };
+
+const setQuality = $('#setQuality');
+if (setQuality) {
+  setQuality.oninput = (e) => {
+    state.settings.imageQuality = e.target.value / 100;
+    const setQ = $('#setQ');
+    if (setQ) setQ.textContent = e.target.value + '%';
+  };
+}
+
+const setMaxSize = $('#setMaxSize');
+if (setMaxSize) {
+  setMaxSize.oninput = (e) => {
+    state.settings.maxSizeMB = +e.target.value || 100;
+    ['#imgLimitInput','#fileLimitInput'].forEach(s => { const el = $(s); if (el) el.value = state.settings.maxSizeMB; });
+    ['#imgLimitLabel','#audLimitLabel','#fileLimitLabel'].forEach(s => {
+      const el = $(s); if (el) el.textContent = state.settings.maxSizeMB;
+    });
+  };
+}
+
+const setPreview = $('#setPreview');
+if (setPreview) setPreview.onchange = (e) => state.settings.preview = e.target.checked;
+
 
 /* ============================================================
    1) الصور — ضغط وتحويل
    ============================================================ */
 function setupDrop(zoneId, inputId, handler){
-  const zone = $(zoneId), input = $(inputId);
+  const zone = $(zoneId), input =$(inputId);
+  if (!zone || !input) return;
   zone.onclick = () => input.click();
   input.onchange = (e) => handler([...e.target.files]);
   ['dragenter','dragover'].forEach(ev =>
@@ -113,8 +121,9 @@ setupDrop('#imageDrop','#imageInput', files => {
 
 function renderImageQueue(){
   const box = $('#imageResults');
+  if (!box) return;
   box.innerHTML = '';
-  state.images.forEach((f, i) => {
+  state.images.forEach((f) => {
     const card = document.createElement('div');
     card.className = 'result-card';
     card.innerHTML = `
@@ -127,59 +136,72 @@ function renderImageQueue(){
   });
 }
 
-$('#imgQuality').oninput = (e) => {
-  state.settings.imageQuality = e.target.value / 100;
-  $('#imgQualityVal').textContent = e.target.value + '%';
-};
-$('#imgLimitInput').oninput = (e) => {
-  state.settings.maxSizeMB = +e.target.value || 100;
-};
+const imgQuality = $('#imgQuality');
+if (imgQuality) {
+  imgQuality.oninput = (e) => {
+    state.settings.imageQuality = e.target.value / 100;
+    const valLabel = $('#imgQualityVal');
+    if (valLabel) valLabel.textContent = e.target.value + '%';
+  };
+}
 
-$('#imgProcess').onclick = async () => {
-  if (!state.images.length) return toast('لا توجد صور', true);
-  const format = $('#imgFormat').value;
-  const quality = state.settings.imageQuality;
-  const box = $('#imageResults');
-  box.innerHTML = '';
+const imgLimitInput = $('#imgLimitInput');
+if (imgLimitInput) {
+  imgLimitInput.oninput = (e) => {
+    state.settings.maxSizeMB = +e.target.value || 100;
+  };
+}
 
-  for (const file of state.images){
-    const card = document.createElement('div');
-    card.className = 'result-card';
-    card.innerHTML = `
-      <div class="result-thumb">⏳</div>
-      <div class="result-info">
-        <div class="result-name">${file.name}</div>
-        <div class="result-meta">جارٍ المعالجة…</div>
-        <div class="progress"><div class="progress-bar"></div></div>
-      </div>`;
-    box.appendChild(card);
+const imgProcess = $('#imgProcess');
+if (imgProcess) {
+  imgProcess.onclick = async () => {
+    if (!state.images.length) return toast('لا توجد صور', true);
+    const formatEl = $('#imgFormat');
+    const format = formatEl ? formatEl.value : 'image/jpeg';
+    const quality = state.settings.imageQuality;
+    const box = $('#imageResults');
+    if (!box) return;
+    box.innerHTML = '';
 
-    try {
-      const out = await compressImage(file, quality, format);
-      const ext = format.split('/')[1].replace('jpeg','jpg');
-      const name = file.name.replace(/\.[^.]+$/, '') + '.' + ext;
-      const saved = Math.round((1 - out.size / file.size) * 100);
-
+    for (const file of state.images){
+      const card = document.createElement('div');
+      card.className = 'result-card';
       card.innerHTML = `
-        <img class="result-thumb" src="${URL.createObjectURL(out)}" alt="">
+        <div class="result-thumb">⏳</div>
         <div class="result-info">
-          <div class="result-name">${name}</div>
-          <div class="result-meta">
-            ${fmtSize(file.size)} → ${fmtSize(out.size)}
-            ${saved > 0 ? `<span class="save"> −${saved}%</span>` : ''}
-          </div>
-        </div>
-        <div class="result-actions">
-          <button class="dl-btn">تنزيل</button>
+          <div class="result-name">${file.name}</div>
+          <div class="result-meta">جارٍ المعالجة…</div>
+          <div class="progress"><div class="progress-bar"></div></div>
         </div>`;
-      card.querySelector('.dl-btn').onclick = () => download(out, name);
-    } catch(err){
-      card.innerHTML = `<div class="result-thumb">⚠️</div>
-        <div class="result-info"><div class="result-name">${file.name}</div>
-        <div class="result-meta" style="color:var(--danger)">فشل: ${err.message}</div></div>`;
+      box.appendChild(card);
+
+      try {
+        const out = await compressImage(file, quality, format);
+        const ext = format.split('/')[1].replace('jpeg','jpg');
+        const name = file.name.replace(/\.[^.]+$/, '') + '.' + ext;
+        const saved = Math.round((1 - out.size / file.size) * 100);
+
+        card.innerHTML = `
+          <img class="result-thumb" src="${URL.createObjectURL(out)}" alt="">
+          <div class="result-info">
+            <div class="result-name">${name}</div>
+            <div class="result-meta">
+              ${fmtSize(file.size)} → ${fmtSize(out.size)}
+              ${saved > 0 ? `<span class="save"> −${saved}%</span>` : ''}
+            </div>
+          </div>
+          <div class="result-actions">
+            <button class="dl-btn">تنزيل</button>
+          </div>`;
+        card.querySelector('.dl-btn').onclick = () => download(out, name);
+      } catch(err){
+        card.innerHTML = `<div class="result-thumb">⚠️</div>
+          <div class="result-info"><div class="result-name">${file.name}</div>
+          <div class="result-meta" style="color:var(--danger)">فشل: ${err.message}</div></div>`;
+      }
     }
-  }
-};
+  };
+}
 
 function loadImage(file){
   return new Promise((res, rej) => {
@@ -205,6 +227,7 @@ async function compressImage(file, quality, format){
     canvas.toBlob(b => b ? res(b) : rej(new Error('فشل الترميز')), format, quality));
 }
 
+
 /* ============================================================
    2) الصوت — قص، ضغط، نغمة موبايل
    ============================================================ */
@@ -228,16 +251,20 @@ async function prepareAudioSliders(){
   const a = new Audio(url);
   await new Promise(r => { a.onloadedmetadata = r; a.onerror = r; });
   audioMeta = { duration: a.duration || 0, file: first };
-  $('#trimStart').value = 0;
-  $('#trimEnd').value = 100;
-  $('#trimStartLabel').textContent = '0:00';
-  $('#trimEndLabel').textContent = fmtTime(audioMeta.duration);
   
-  // رسم الموجة الصوتية عند تحميل الملف
+  const trimStart = $('#trimStart');
+  const trimEnd = $('#trimEnd');
+  const trimStartLabel = $('#trimStartLabel');
+  const trimEndLabel = $('#trimEndLabel');
+  
+  if (trimStart) trimStart.value = 0;
+  if (trimEnd) trimEnd.value = 100;
+  if (trimStartLabel) trimStartLabel.textContent = '0:00';
+  if (trimEndLabel) trimEndLabel.textContent = fmtTime(audioMeta.duration);
+  
   renderRealWaveform(first);
 }
 
-// دالة رسم الموجة الصوتية الحقيقية على الـ Canvas
 async function renderRealWaveform(file) {
   const canvas = $('#audioCanvas');
   if (!canvas) return;
@@ -267,7 +294,6 @@ async function renderRealWaveform(file) {
       const h = Math.min(height, Math.max(4, val * height * 1.5));
       const y = (height - h) / 2;
 
-      // تلوين الجزء المحدد باللون السماوي والباقي بالرمادي كما في التصميم المطلوب
       ctx.fillStyle = i < 15 ? '#38bdf8' : '#475569';
       ctx.fillRect(i * barWidth + 2, y, barWidth - 4, h);
     }
@@ -276,452 +302,7 @@ async function renderRealWaveform(file) {
   }
 }
 
-$('#trimStart').oninput = updateTrim;
-$('#trimEnd').oninput = updateTrim;
-function updateTrim(){
-  if (!audioMeta) return;
-  let s = +$('#trimStart').value;
-  let e = +$('#trimEnd').value;
-  if (s >= e){ e = s + 1; $('#trimEnd').value = e; }
-  const st = (s/100) * audioMeta.duration;
-  const en = (e/100) * audioMeta.duration;
-  $('#trimStartLabel').textContent = fmtTime(st);
-  $('#trimEndLabel').textContent = fmtTime(en);
-}
-
-function getTrimRange(){
-  if (!audioMeta) return [0, 0];
-  const s = (+$('#trimStart').value / 100) * audioMeta.duration;
-  const e = (+$('#trimEnd').value / 100) * audioMeta.duration;
-  return [s, Math.max(e, s + 0.5)];
-}
-
-function renderAudioQueue(){
-  const box = $('#audioResults');
-  box.innerHTML = '';
-  state.audio.forEach(f => {
-    const card = document.createElement('div');
-    card.className = 'result-card';
-    card.innerHTML = `
-      <div class="result-thumb">🎵</div>
-      <div class="result-info">
-        <div class="result-name">${f.name}</div>
-        <div class="result-meta">${fmtSize(f.size)} · جاهز للمعالجة</div>
-      </div>`;
-    box.appendChild(card);
-  });
-}
-
-$('#audioProcess').onclick = () => runAudio(false);
-$('#ringtoneBtn').onclick = () => runAudio(true);
-
-async function runAudio(asRingtone){
-  if (!state.audio.length) return toast('لا يوجد صوت', true);
-  const bitrate = +$('#audioBitrate').value;
-  let [start, end] = getTrimRange();
-  if (asRingtone){
-    start = 0;
-    end = Math.min(end || audioMeta.duration, 30);
-    if (end > audioMeta.duration) end = audioMeta.duration;
-  }
-
-  const box = $('#audioResults');
-  box.innerHTML = '';
-
-  const results = [];
-  for (const file of state.audio){
-    const card = document.createElement('div');
-    card.className = 'result-card';
-    card.innerHTML = `
-      <div class="result-thumb">⏳</div>
-      <div class="result-info">
-        <div class="result-name">${file.name}</div>
-        <div class="result-meta">جارٍ المعالجة…</div>
-        <div class="progress"><div class="progress-bar"></div></div>
-      </div>`;
-    box.appendChild(card);
-
-    try {
-      const ab = await file.arrayBuffer();
-      const out = await encodeMP3(ab, start, end, bitrate);
-      const baseName = file.name.replace(/\.[^.]+$/, '');
-      const name = asRingtone ? baseName + '-ringtone.mp3' : baseName + '-trim.mp3';
-      results.push({ blob: out, name });
-
-      const saved = Math.round((1 - out.size / file.size) * 100);
-      card.innerHTML = `
-        <div class="result-thumb">🎧</div>
-        <div class="result-info">
-          <div class="result-name">${name}</div>
-          <div class="result-meta">
-            ${fmtTime(end - start)} ثانية · ${fmtSize(out.size)}
-            ${saved > 0 ? `<span class="save"> −${saved}%</span>` : ''}
-          </div>
-        </div>
-        <div class="result-actions">
-          <button class="dl-btn">تنزيل</button>
-        </div>`;
-      card.querySelector('.dl-btn').onclick = () => download(out, name);
-    } catch(err){
-      card.innerHTML = `<div class="result-thumb">⚠️</div>
-        <div class="result-info"><div class="result-name">${file.name}</div>
-        <div class="result-meta" style="color:var(--danger)">فشل: ${err.message}</div></div>`;
-    }
-  }
-
-  if (results.length > 1 && window.JSZip){
-    const zip = new JSZip();
-    results.forEach(r => zip.file(r.name, r.blob));
-    const blob = await zip.generateAsync({ type: 'blob' });
-    const card = document.createElement('div');
-    card.className = 'result-card';
-    card.innerHTML = `
-      <div class="result-thumb">📦</div>
-      <div class="result-info">
-        <div class="result-name">تحميل الكل (ZIP)</div>
-        <div class="result-meta">${results.length} ملف · ${fmtSize(blob.size)}</div>
-      </div>
-      <div class="result-actions"><button class="dl-btn">تنزيل</button></div>`;
-    card.querySelector('.dl-btn').onclick = () => download(blob, 'audio-batch.zip');
-    box.appendChild(card);
-  }
-}
-
-async function encodeMP3(arrayBuffer, startSec, endSec, bitrate){
-  const AC = window.AudioContext || window.webkitAudioContext;
-  const ctx = new AC();
-  const buffer = await ctx.decodeAudioData(arrayBuffer.slice(0));
-  const sr = buffer.sampleRate;
-  const startS = Math.floor(startSec * sr);
-  const endS = Math.min(Math.floor(endSec * sr), buffer.length);
-  const len = endS - startS;
-  if (len <= 0) throw new Error('نطاق غير صالح');
-
-  const channels = buffer.numberOfChannels;
-  const left = buffer.getChannelData(0).subarray(startS, endS);
-  const right = channels > 1 ? buffer.getChannelData(1).subarray(startS, endS) : null;
-
-  const leftI = new Int16Array(left.length);
-  for (let i = 0; i < left.length; i++)
-    leftI[i] = Math.max(-1, Math.min(1, left[i])) * 0x7FFF;
-
-  let rightI = null;
-  if (right){
-    rightI = new Int16Array(right.length);
-    for (let i = 0; i < right.length; i++)
-      rightI[i] = Math.max(-1, Math.min(1, right[i])) * 0x7FFF;
-  }
-
-  const mp3enc = new lamejs.Mp3Encoder(rightI ? 2 : 1, sr, bitrate);
-  const blockSize = 1152;
-  const data = [];
-
-  if (rightI){
-    for (let i = 0; i < leftI.length; i += blockSize){
-      const l = leftI.subarray(i, i + blockSize);
-      const r = rightI.subarray(i, i + blockSize);
-      const buf = mp3enc.encodeBuffer(l, r);
-      if (buf.length) data.push(new Uint8Array(buf));
-    }
-  } else {
-    for (let i = 0; i < leftI.length; i += blockSize){
-      const l = leftI.subarray(i, i + blockSize);
-      const buf = mp3enc.encodeBuffer(l);
-      if (buf.length) data.push(new Uint8Array(buf));
-    }
-  }
-  const flush = mp3enc.flush();
-  if (flush.length) data.push(new Uint8Array(flush));
-
-  return new Blob(data, { type: 'audio/mpeg' });
-}
-
-/* ============================================================
-   3) الملفات — ضغط GZIP
-   ============================================================ */
-setupDrop('#fileDrop','#fileInput', files => {
-  const limit = state.settings.maxSizeMB * 1048576;
-  files.forEach(f => {
-    if (f.size > limit) return toast(`"${f.name}" تجاوز الحد`, true);
-    state.files.push(f);
-  });
-  renderFileQueue();
-});
-
-$('#fileLimitInput').oninput = e => state.settings.maxSizeMB = +e.target.value || 100;
-
-function renderFileQueue(){
-  const box = $('#fileResults');
-  box.innerHTML = '';
-  state.files.forEach(f => {
-    const card = document.createElement('div');
-    card.className = 'result-card';
-    card.innerHTML = `
-      <div class="result-thumb">📄</div>
-      <div class="result-info">
-        <div class="result-name">${f.name}</div>
-        <div class="result-meta">${fmtSize(f.size)}</div>
-      </div>`;
-    box.appendChild(card);
-  });
-}
-
-$('#fileProcess').onclick = async () => {
-  if (!state.files.length) return toast('لا توجد ملفات', true);
-  if (typeof CompressionStream === 'undefined')
-    return toast('متصفحك لا يدعم الضغط', true);
-
-  const box = $('#fileResults');
-  box.innerHTML = '';
-
-  for (const file of state.files){
-    const card = document.createElement('div');
-    card.className = 'result-card';
-    card.innerHTML = `
-      <div class="result-thumb">⏳</div>
-      <div class="result-info">
-        <div class="result-name">${file.name}</div>
-        <div class="result-meta">جارٍ الضغط…</div>
-        <div class="progress"><div class="progress-bar"></div></div>
-      </div>`;
-    box.appendChild(card);
-
-    try {
-      const stream = file.stream().pipeThrough(new CompressionStream('gzip'));
-      const blob = await new Response(stream).blob();
-      const name = file.name + '.gz';
-      const saved = Math.round((1 - blob.size / file.size) * 100);
-
-      card.innerHTML = `
-        <div class="result-thumb">📦</div>
-        <div class="result-info">
-          <div class="result-name">${name}</div>
-          <div class="result-meta">
-            ${fmtSize(file.size)} → ${fmtSize(blob.size)}
-            ${saved > 0 ? `<span class="save"> −${saved}%</span>` : ''}
-          </div>
-        </div>
-        <div class="result-actions"><button class="dl-btn">تنزيل</button></div>`;
-      card.querySelector('.dl-btn').onclick = () => download(blob, name);
-    } catch(err){
-      card.innerHTML = `<div class="result-thumb">⚠️</div>
-        <div class="result-info"><div class="result-name">${file.name}</div>
-        <div class="result-meta" style="color:var(--danger)">فشل</div></div>`;
-    }
-  }
-};
-
-/* ============================================================
-   تفعيل وتشغيل أزرار التحكم بمحرر الصوت
-   ============================================================ */
-let previewAudio = null;
-
-const playBtn = $('#audioPlayBtn');
-if (playBtn) {
-  playBtn.onclick = () => {
-    if (!audioMeta || !audioMeta.file) {
-      toast('لا يوجد صوت للتشغيل', true);
-      return;
-    }
-    if (!previewAudio) {
-      previewAudio = new Audio(URL.createObjectURL(audioMeta.file));
-    }
-    if (previewAudio.paused) {
-      let [start, end] = getTrimRange();
-      if (isNaN(previewAudio.currentTime) || previewAudio.currentTime < start || previewAudio.currentTime >= end) {
-        previewAudio.currentTime = start;
-      }
-      previewAudio.play().then(() => {
-        playBtn.textContent = '⏸️';
-      }).catch(e => toast('فشل تشغيل الصوت: ' + e.message, true));
-
-      previewAudio.ontimeupdate = () => {
-        if (previewAudio.currentTime >= end) {
-          previewAudio.pause();
-          previewAudio.currentTime = start;
-          playBtn.textContent = '▶️';
-        }
-      };
-    } else {
-      previewAudio.pause();
-      playBtn.textContent = '▶️';
-    }
-  };
-}
-
-const rewindBtn = $('#audioRewind');
-if (rewindBtn) {
-  rewindBtn.onclick = () => {
-    if (previewAudio) {
-      let [start] = getTrimRange();
-      previewAudio.currentTime = Math.max(start, previewAudio.currentTime - 5);
-      toast('ترجيع 5 ثوانٍ');
-    } else {
-      toast('قم بتشغيل الصوت أولاً', true);
-    }
-  };
-}
-
-const forwardBtn = $('#audioForward');
-if (forwardBtn) {
-  forwardBtn.onclick = () => {
-    if (previewAudio && audioMeta) {
-      let [, end] = getTrimRange();
-      previewAudio.currentTime = Math.min(end, previewAudio.currentTime + 5);
-      toast('تقديم 5 ثوانٍ');
-    } else {
-      toast('قم بتشغيل الصوت أولاً', true);
-    }
-  };
-}
-
-/* ============================================================
-   تهيئة
-   ============================================================ */
-window.addEventListener('load', () => {
-  $('#imgQualityVal').textContent = Math.round(state.settings.imageQuality * 100) + '%';
-  ['#imgLimitLabel','#audLimitLabel','#fileLimitLabel'].forEach(s =>
-    $(s).textContent = state.settings.maxSizeMB);
-  if (typeof lamejs === 'undefined')
-    console.warn('lamejs لم يُحمَّل — معالجة الصوت معطّلة');
-  if (typeof JSZip === 'undefined')
-    console.warn('JSZip لم يُحمَّل — تجميع ZIP معطّل');
-});$('#audioResetBtn').onclick = () => {
-  $('#trimStart').value = 0;
-  $('#trimEnd').value = 100;
-  updateTrim();
-  toast('تمت إعادة الضبط');
-};
-$('#audioSaveBtn').onclick = () => $('#audioProcess').click();
-/* ============================================================
-   تفعيل أزرار محرر الصوت البرتقالية
-   ============================================================ */
-let previewAudio = null;
-
-$('#audioPlayBtn').onclick = () => {
-  if (!audioMeta || !audioMeta.file) return toast('لا يوجد صوت للتشغيل', true);
-  
-  if (!previewAudio) {
-    previewAudio = new Audio(URL.createObjectURL(audioMeta.file));
-  }
-  
-  if (previewAudio.paused) {
-    let [start, end] = getTrimRange();
-    previewAudio.currentTime = start;
-    previewAudio.play();
-    $('#audioPlayBtn').textContent = '⏸️';
-    
-    previewAudio.ontimeupdate = () => {
-      if (previewAudio.currentTime >= end) {
-        previewAudio.pause();
-        $('#audioPlayBtn').textContent = '▶️';
-      }
-    };
-  } else {
-    previewAudio.pause();
-    $('#audioPlayBtn').textContent = '▶️';
-  }
-};
-
-$('#audioRewind').onclick = () => {
-  if (previewAudio) {
-    previewAudio.currentTime = Math.max(0, previewAudio.currentTime - 5);
-    toast('ترجيع 5 ثوانٍ');
-  } else {
-    toast('قم بتشغيل الصوت أولاً', true);
-  }
-};
-
-$('#audioForward').onclick = () => {
-  if (previewAudio && audioMeta) {
-    previewAudio.currentTime = Math.min(audioMeta.duration, previewAudio.currentTime + 5);
-    toast('تقديم 5 ثوانٍ');
-  } else {
-    toast('قم بتشغيل الصوت أولاً', true);
-  }
-};
-
-$('#audioZoomIn').onclick = () => {
-  toast('تم تكبير الموجة الصوتية');
-};
-
-$('#audioZoomOut').onclick = () => {
-  toast('تم تصغير الموجة الصوتية');
-};
-/* ============================================================
-   تفعيل وتشغيل أزرار التحكم بمحرر الصوت
-   ============================================================ */
-let previewAudio = null;
-
-const playBtn = $('#audioPlayBtn');
-if (playBtn) {
-  playBtn.onclick = () => {
-    if (!audioMeta || !audioMeta.file) {
-      toast('لا يوجد صوت للتشغيل', true);
-      return;
-    }
-    if (!previewAudio) {
-      previewAudio = new Audio(URL.createObjectURL(audioMeta.file));
-    }
-    if (previewAudio.paused) {
-      let [start, end] = getTrimRange();
-      if (isNaN(previewAudio.currentTime) || previewAudio.currentTime < start || previewAudio.currentTime >= end) {
-        previewAudio.currentTime = start;
-      }
-      previewAudio.play().then(() => {
-        playBtn.textContent = '⏸️';
-      }).catch(e => toast('فشل تشغيل الصوت: ' + e.message, true));
-
-      previewAudio.ontimeupdate = () => {
-        if (previewAudio.currentTime >= end) {
-          previewAudio.pause();
-          previewAudio.currentTime = start;
-          playBtn.textContent = '▶️';
-        }
-      };
-    } else {
-      previewAudio.pause();
-      playBtn.textContent = '▶️';
-    }
-  };
-}
-
-const rewindBtn = $('#audioRewind');
-if (rewindBtn) {
-  rewindBtn.onclick = () => {
-    if (previewAudio) {
-      let [start] = getTrimRange();
-      previewAudio.currentTime = Math.max(start, previewAudio.currentTime - 5);
-      toast('ترجيع 5 ثوانٍ');
-    } else {
-      toast('قم بتشغيل الصوت أولاً', true);
-    }
-  };
-}
-
-const forwardBtn = $('#audioForward');
-if (forwardBtn) {
-  forwardBtn.onclick = () => {
-    if (previewAudio && audioMeta) {
-      let [, end] = getTrimRange();
-      previewAudio.currentTime = Math.min(end, previewAudio.currentTime + 5);
-      toast('تقديم 5 ثوانٍ');
-    } else {
-      toast('قم بتشغيل الصوت أولاً', true);
-    }
-  };
-}
-
-const zoomInBtn = $('#audioZoomIn');
-if (zoomInBtn) {
-  zoomInBtn.onclick = () => {
-    toast('تم تكبير عرض الموجة');
-  };
-}
-
-const zoomOutBtn = $('#audioZoomOut');
-if (zoomOutBtn) {
-  zoomOutBtn.onclick = () => {
-    toast('تم تصغير عرض الموجة');
-  };
-}
+const trimStartEl = $('#trimStart');
+const trimEndEl = $('#trimEnd');
+if (trimStartEl) trimStartEl.oninput = updateTrim;
+if (trimEndEl) trimEndEl.oninput = update
