@@ -265,7 +265,6 @@ setupDrop('#audioDrop','#audioInput', async files => {
 function renderAudioQueue() {
   const box = $('#audioResults');
   if (!box || !state.audio.length) return;
-  // يمكن ترك مساحة عرض قائمة ملفات الصوت إن وجدت
 }
 
 async function prepareAudioSliders(){
@@ -296,7 +295,7 @@ async function renderRealWaveform(file) {
   const width = canvas.width;
   const height = canvas.height;
 
-  ctx.fillStyle = '#0f172a';
+  ctx.fillStyle = '#070b14';
   ctx.fillRect(0, 0, width, height);
 
   try {
@@ -305,7 +304,7 @@ async function renderRealWaveform(file) {
     const ctxAudio = new AC();
     const audioBuffer = await ctxAudio.decodeAudioData(arrayBuffer);
     const rawData = audioBuffer.getChannelData(0);
-    const samples = 60;
+    const samples = 80;
     const blockSz = Math.floor(rawData.length / samples);
     const barWidth = width / samples;
 
@@ -315,11 +314,11 @@ async function renderRealWaveform(file) {
         sum += Math.abs(rawData[i * blockSz + j]);
       }
       const val = sum / blockSz;
-      const h = Math.min(height, Math.max(4, val * height * 1.5));
+      const h = Math.min(height, Math.max(6, val * height * 1.8));
       const y = (height - h) / 2;
 
-      ctx.fillStyle = i < 15 ? '#38bdf8' : '#475569';
-      ctx.fillRect(i * barWidth + 2, y, barWidth - 4, h);
+      ctx.fillStyle = '#00f2fe';
+      ctx.fillRect(i * barWidth + 1, y, barWidth - 2, h);
     }
   } catch (e) {
     console.warn('تعذر رسم الموجة الحقيقية:', e);
@@ -334,7 +333,10 @@ function updateTrim(){
   
   let s = +trimStart.value;
   let e = +trimEnd.value;
-  if (s >= e){ e = s + 1; trimEnd.value = e; }
+  if (s >= e){ 
+    s = Math.max(0, e - 1);
+    trimStart.value = s;
+  }
   const st = (s/100) * audioMeta.duration;
   const en = (e/100) * audioMeta.duration;
   
@@ -553,13 +555,18 @@ if (audioProcessBtn) {
 const ringtoneBtn = $('#ringtoneBtn');
 if (ringtoneBtn) {
   ringtoneBtn.onclick = () => {
+    if (!audioMeta || !audioMeta.file) {
+      return toast('الرجاء اختيار ملف صوتي أولاً', true);
+    }
     const tStart = $('#trimStart');
     const tEnd = $('#trimEnd');
     if (tStart && tEnd) {
       tStart.value = 0;
-      tEnd.value = Math.min(100, Math.round((30 / (audioMeta ? audioMeta.duration : 30)) * 100));
+      const ringtoneDuration = Math.min(30, audioMeta.duration);
+      const endPercentage = Math.round((ringtoneDuration / audioMeta.duration) * 100);
+      tEnd.value = Math.max(1, Math.min(100, endPercentage));
       updateTrim();
-      toast('تم ضبط النغمة على أول 30 ثانية');
+      toast(`تم ضبط النغمة على أول ${Math.round(ringtoneDuration)} ثانية`);
     }
     if (audioProcessBtn) audioProcessBtn.click();
   };
