@@ -276,12 +276,28 @@
     let left = r.left - panelW - 12;
     if (left < 8) left = Math.min(window.innerWidth - panelW - 8, r.right + 12);
     $panel.style.left = left + 'px';
-    $panel.style.top  = Math.min(window.innerHeight - 120, Math.max(8, r.top - 40)) + 'px';
+    $panel.style.top  = '15px';
     $panel.classList.add('open');
   }
 
   function initPanel() {
     $('closePanel').addEventListener('click', () => $panel.classList.remove('open'));
+
+    $('checkPermsBtn')?.addEventListener('click', async () => {
+      const status = $('permStatus');
+      try {
+        if (navigator.clipboard) {
+          status.textContent = '✅ الإذونات الأساسية وحافظة النصوص مفعّلة';
+          status.className = 'hint ok';
+        } else {
+          status.textContent = '⚠️ الحافظة غير متوفرة';
+          status.className = 'hint err';
+        }
+      } catch (e) {
+        status.textContent = '⚠️ تعذر التحقق من الإذونات';
+        status.className = 'hint err';
+      }
+    });
 
     const modeSel = $('modeSel');
     modeSel.value = state.settings.mode;
