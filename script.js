@@ -624,3 +624,58 @@ window.addEventListener('load', () => {
   toast('تمت إعادة الضبط');
 };
 $('#audioSaveBtn').onclick = () => $('#audioProcess').click();
+/* ============================================================
+   تفعيل أزرار محرر الصوت البرتقالية
+   ============================================================ */
+let previewAudio = null;
+
+$('#audioPlayBtn').onclick = () => {
+  if (!audioMeta || !audioMeta.file) return toast('لا يوجد صوت للتشغيل', true);
+  
+  if (!previewAudio) {
+    previewAudio = new Audio(URL.createObjectURL(audioMeta.file));
+  }
+  
+  if (previewAudio.paused) {
+    let [start, end] = getTrimRange();
+    previewAudio.currentTime = start;
+    previewAudio.play();
+    $('#audioPlayBtn').textContent = '⏸️';
+    
+    previewAudio.ontimeupdate = () => {
+      if (previewAudio.currentTime >= end) {
+        previewAudio.pause();
+        $('#audioPlayBtn').textContent = '▶️';
+      }
+    };
+  } else {
+    previewAudio.pause();
+    $('#audioPlayBtn').textContent = '▶️';
+  }
+};
+
+$('#audioRewind').onclick = () => {
+  if (previewAudio) {
+    previewAudio.currentTime = Math.max(0, previewAudio.currentTime - 5);
+    toast('ترجيع 5 ثوانٍ');
+  } else {
+    toast('قم بتشغيل الصوت أولاً', true);
+  }
+};
+
+$('#audioForward').onclick = () => {
+  if (previewAudio && audioMeta) {
+    previewAudio.currentTime = Math.min(audioMeta.duration, previewAudio.currentTime + 5);
+    toast('تقديم 5 ثوانٍ');
+  } else {
+    toast('قم بتشغيل الصوت أولاً', true);
+  }
+};
+
+$('#audioZoomIn').onclick = () => {
+  toast('تم تكبير الموجة الصوتية');
+};
+
+$('#audioZoomOut').onclick = () => {
+  toast('تم تصغير الموجة الصوتية');
+};
