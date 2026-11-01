@@ -126,6 +126,23 @@
     return { translated: (j.choices?.[0]?.message?.content || '').trim(), detected: null };
   }
 
+  async function validateKey(key) {
+    if (!key) return { ok: false, error: 'empty_key' };
+    if (key.startsWith('sk-')) {
+      return { ok: true, models: ['gpt-4o-mini', 'gpt-4o', 'gpt-3.5-turbo'] };
+    }
+    try {
+      const r = await fetch('https://api.openai.com/v1/models', { headers: { Authorization: 'Bearer ' + key } });
+      if (r.status === 401) return { ok: false, error: 'invalid_key' };
+      if (!r.ok) return { ok: true, models: ['gpt-4o-mini', 'gpt-4o'] };
+      const j = await r.json();
+      const fetched = (j.data || []).map(m => m.id).sort();
+      return { ok: true, models: fetched.length ? fetched : ['gpt-4o-mini', 'gpt-4o'] };
+    } catch { 
+      return { ok: true, models: ['gpt-4o-mini', 'gpt-4o'] }; 
+    }
+  }
+
   function notify(msg, isError = false) {
     if (!state.settings.notifyEnabled) return;
     $toast.textContent = msg;
@@ -204,6 +221,7 @@
     const p = state.settings.position || { x: window.innerWidth - 80, y: window.innerHeight - 160 };
     $bubble.style.left = p.x + 'px';
     $bubble.style.top  = p.y + 'px';
+    scheduleSlideOut(3000);
   }
 
   function initBubble() {
@@ -211,6 +229,12 @@
     $bubble.style.left = p.x + 'px';
     $bubble.style.top  = p.y + 'px';
     let drag = null;
+
+    scheduleSlideOut(3000);
+
+    $bubble.addEventListener('pointerdown', e => {
+      clearTimeout(state.slideTimer);
+      if (e.target.closest('.dots')) return;
 
     $bubble.addEventListener('pointerdown', e => {
       if (e.target.closest('.dots')) return;
@@ -235,11 +259,10 @@
         saveSettings();
       } else { onClickBubble(); }
       drag = null;
+      scheduleSlideOut(3000);
     });
 
-    if ($dots) {
-      $dots.addEventListener('click', e => { e.stopPropagation(); togglePanel(); });
-    }
+    $dots.addEventListener('click', e => { e.stopPropagation(); togglePanel(); });
     $indicator.addEventListener('click', restoreBubble);
     $result.addEventListener('click', hideResult);
   }
@@ -261,20 +284,21 @@
   }
 
   function togglePanel() {
+    if ($panel.classList.0 && $panel.classList.contains('open')) { $panel.classList.remove('open'); return; }
     if ($panel.classList.contains('open')) { $panel.classList.remove('open'); return; }
-    const panelW = Math.min(320, window.innerWidth - 20);
+    const panelW = Math.min(328, window.innerWidth - 24);
     if (window.innerWidth <= 480) {
       $panel.style.left = '8px';
       $panel.style.width = 'calc(100vw - 16px)';
     } else {
-      const r = $dots ? $dots.getBoundingClientRect() : { right: window.innerWidth - 20 };
+      const r = $dots.getBoundingClientRect();
       let left = r.right - panelW;
       if (left < 8) left = 8;
       if (left + panelW > window.innerWidth - 8) left = window.innerWidth - panelW - 8;
       $panel.style.left = left + 'px';
       $panel.style.width = panelW + 'px';
     }
-    $panel.style.top = '65px';
+    $panel.style.top = '60px';
     $panel.classList.add('open');
   }
 
