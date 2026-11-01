@@ -276,13 +276,21 @@
   }
 
   function togglePanel() {
+    if ($panel.classList.0 && $panel.classList.contains('open')) { $panel.classList.remove('open'); return; }
     if ($panel.classList.contains('open')) { $panel.classList.remove('open'); return; }
-    const r = $bubble.getBoundingClientRect();
     const panelW = Math.min(328, window.innerWidth - 24);
-    let left = r.left - panelW - 12;
-    if (left < 8) left = Math.min(window.innerWidth - panelW - 8, r.right + 12);
-    $panel.style.left = left + 'px';
-    $panel.style.top  = '15px';
+    if (window.innerWidth <= 480) {
+      $panel.style.left = '8px';
+      $panel.style.width = 'calc(100vw - 16px)';
+    } else {
+      const r = $dots.getBoundingClientRect();
+      let left = r.right - panelW;
+      if (left < 8) left = 8;
+      if (left + panelW > window.innerWidth - 8) left = window.innerWidth - panelW - 8;
+      $panel.style.left = left + 'px';
+      $panel.style.width = panelW + 'px';
+    }
+    $panel.style.top = '60px';
     $panel.classList.add('open');
   }
 
