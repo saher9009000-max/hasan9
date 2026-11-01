@@ -393,6 +393,14 @@
 
     loadSettings();
     initLanguages(); initAppearance(); initBubble(); initPanel(); initSelectionTracking();
+    
+    $('themeToggle')?.addEventListener('click', () => {
+      state.settings.darkMode = !state.settings.darkMode;
+      applyDarkMode(state.settings.darkMode);
+      if ($('dark')) $('dark').checked = state.settings.darkMode;
+      saveSettings();
+    });
+
     $('translateBtn')?.addEventListener('click', () => {
       const text = $('inputText').value.trim();
       if (text) runTranslation(text); else notify('النص فارغ', true);
