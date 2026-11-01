@@ -281,7 +281,6 @@
   }
 
   function togglePanel() {
-    if ($panel.classList.0 && $panel.classList.contains('open')) { $panel.classList.remove('open'); return; }
     if ($panel.classList.contains('open')) { $panel.classList.remove('open'); return; }
     const panelW = Math.min(328, window.innerWidth - 24);
     if (window.innerWidth <= 480) {
