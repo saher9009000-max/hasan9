@@ -126,23 +126,6 @@
     return { translated: (j.choices?.[0]?.message?.content || '').trim(), detected: null };
   }
 
-  async function validateKey(key) {
-    if (!key) return { ok: false, error: 'empty_key' };
-    if (key.startsWith('sk-')) {
-      return { ok: true, models: ['gpt-4o-mini', 'gpt-4o', 'gpt-3.5-turbo'] };
-    }
-    try {
-      const r = await fetch('https://api.openai.com/v1/models', { headers: { Authorization: 'Bearer ' + key } });
-      if (r.status === 401) return { ok: false, error: 'invalid_key' };
-      if (!r.ok) return { ok: true, models: ['gpt-4o-mini', 'gpt-4o'] };
-      const j = await r.json();
-      const fetched = (j.data || []).map(m => m.id).sort();
-      return { ok: true, models: fetched.length ? fetched : ['gpt-4o-mini', 'gpt-4o'] };
-    } catch { 
-      return { ok: true, models: ['gpt-4o-mini', 'gpt-4o'] }; 
-    }
-  }
-
   function notify(msg, isError = false) {
     if (!state.settings.notifyEnabled) return;
     $toast.textContent = msg;
@@ -254,7 +237,9 @@
       drag = null;
     });
 
-    $dots.addEventListener('click', e => { e.stopPropagation(); togglePanel(); });
+    if ($dots) {
+      $dots.addEventListener('click', e => { e.stopPropagation(); togglePanel(); });
+    }
     $indicator.addEventListener('click', restoreBubble);
     $result.addEventListener('click', hideResult);
   }
@@ -276,21 +261,20 @@
   }
 
   function togglePanel() {
-    if ($panel.classList.0 && $panel.classList.contains('open')) { $panel.classList.remove('open'); return; }
     if ($panel.classList.contains('open')) { $panel.classList.remove('open'); return; }
-    const panelW = Math.min(328, window.innerWidth - 24);
+    const panelW = Math.min(320, window.innerWidth - 20);
     if (window.innerWidth <= 480) {
       $panel.style.left = '8px';
       $panel.style.width = 'calc(100vw - 16px)';
     } else {
-      const r = $dots.getBoundingClientRect();
+      const r = $dots ? $dots.getBoundingClientRect() : { right: window.innerWidth - 20 };
       let left = r.right - panelW;
       if (left < 8) left = 8;
       if (left + panelW > window.innerWidth - 8) left = window.innerWidth - panelW - 8;
       $panel.style.left = left + 'px';
       $panel.style.width = panelW + 'px';
     }
-    $panel.style.top = '60px';
+    $panel.style.top = '65px';
     $panel.classList.add('open');
   }
 
