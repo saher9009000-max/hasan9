@@ -29,7 +29,7 @@
 
   const DEFAULTS = {
     targetLang: 'ar', sourceLang: 'auto', mode: 'normal', model: '', models: [],
-    notifyEnabled: true, opacity: 0.92, darkMode: false, position: null
+    notifyEnabled: true, opacity: 0.92, darkMode: false, position: null, apiUrl: ''
   };
 
   const LS = { SETTINGS: 'tt_settings', API_KEY: 'tt_apiKeyEnc', DEVICE: 'tt_device' };
@@ -114,9 +114,17 @@
     const srcLabel = source === 'auto' ? 'the source language (detect automatically)' : source;
     const systemPrompt = `Translate from ${srcLabel} to ${target}. Return ONLY translation.`;
 
-    const isDeepSeek = model.toLowerCase().includes('deepseek');
-    const endpoint = isDeepSeek ? 'https://api.deepseek.com/chat/completions' : 'https://api.openai.com/v1/chat/completions';
-    const actualModel = isDeepSeek && model === 'deepseek' ? 'deepseek-chat' : model;
+    const customUrl = state.settings.apiUrl ? state.settings.apiUrl.trim() : '';
+    let endpoint;
+    let actualModel = model;
+
+    if (customUrl) {
+      endpoint = customUrl.endsWith('/chat/completions') ? customUrl : customUrl.replace(/\/+$/, '') + '/chat/completions';
+    } else {
+      const isDeepSeek = model.toLowerCase().includes('deepseek');
+      endpoint = isDeepSeek ? 'https://api.deepseek.com/chat/completions' : 'https://api.openai.com/v1/chat/completions';
+      actualModel = isDeepSeek && model === 'deepseek' ? 'deepseek-chat' : model;
+    }
 
     const r = await fetch(endpoint, {
       method: 'POST',
@@ -133,8 +141,15 @@
 
   async function validateKey(key) {
     if (!key) return { ok: false, error: 'empty_key' };
-    const isDeepSeek = state.settings.model.toLowerCase().includes('deepseek') || key.length > 40;
-    const endpoint = isDeepSeek ? 'https://api.deepseek.com/models' : 'https://api.openai.com/v1/models';
+    const customUrl = state.settings.apiUrl ? state.settings.apiUrl.trim() : '';
+    let endpoint;
+    if (customUrl) {
+      const base = customUrl.replace(/\/chat\/completions\/?$/, '').replace(/\/+$/, '');
+      endpoint = base.endsWith('/models') ? base : base + '/models';
+    } else {
+      const isDeepSeek = state.settings.model.toLowerCase().includes('deepseek') || key.length > 40;
+      endpoint = isDeepSeek ? 'https://api.deepseek.com/models' : 'https://api.openai.com/v1/models';
+    }
     
     try {
       const r = await fetch(endpoint, { headers: { Authorization: 'Bearer ' + key } });
@@ -355,6 +370,27 @@
       } catch (e) { status.textContent = 'خطأ: ' + e.message; status.className = 'hint err'; }
       finally { $('saveKey').disabled = false; }
     });
+
+    const apiUrlInput = $('apiUrl');
+    if (apiUrlInput) {
+      apiUrlInput.value = state.settings.apiUrl || '';
+      apiUrlInput.addEventListener('input', () => {
+        state.settings.apiUrl = apiUrlInput.value.trim();
+        saveSettings();
+      });
+    }
+
+    const toggleBtn = $('toggleApiUrl');
+    const row = $('apiUrlRow');
+    if (toggleBtn && row) {
+      toggleBtn.addEventListener('click', () => {
+        const isVisible = row.style.display !== 'none';
+        row.style.display = isVisible ? 'none' : 'block';
+      });
+      if (state.settings.apiUrl) {
+        row.style.display = 'block';
+      }
+    }
 
     $('addModel').addEventListener('click', () => {
       const name = $('newModel').value.trim();
