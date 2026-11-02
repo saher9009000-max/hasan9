@@ -113,10 +113,14 @@
     const srcLabel = source === 'auto' ? 'the source language (detect automatically)' : source;
     const systemPrompt = `Translate from ${srcLabel} to ${target}. Return ONLY translation.`;
 
-    const r = await fetch('https://api.openai.com/v1/chat/completions', {
+    const isDeepSeek = model.toLowerCase().includes('deepseek');
+    const endpoint = isDeepSeek ? 'https://api.deepseek.com/chat/completions' : 'https://api.openai.com/v1/chat/completions';
+    const actualModel = isDeepSeek && model === 'deepseek' ? 'deepseek-chat' : model;
+
+    const r = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + key },
-      body: JSON.stringify({ model, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: text }], temperature: 0.2 })
+      body: JSON.stringify({ model: actualModel, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: text }], temperature: 0.2 })
     });
 
     if (r.status === 401) throw new Error('invalid_key');
