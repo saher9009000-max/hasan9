@@ -40,7 +40,7 @@
   };
 
   const $ = id => document.getElementById(id);
-  let $bubble, $dots, $indicator, $result, $panel, $toast;
+  let $bubble, $headerDots, $dots, $indicator, $result, $panel, $toast;
 
   function getDeviceKey() {
     let k = localStorage.getItem(LS.DEVICE);
@@ -280,7 +280,7 @@
       scheduleSlideOut(3000);
     });
 
-    $dots.addEventListener('click', e => { e.stopPropagation(); togglePanel(); });
+    $headerDots.addEventListener('click', e => { e.stopPropagation(); togglePanel(); });
     $indicator.addEventListener('click', restoreBubble);
     $result.addEventListener('click', hideResult);
   }
@@ -449,7 +449,7 @@
   }
 
   function boot() {
-    $bubble = $('bubble'); $dots = $('dots'); $indicator = $('indicator');
+    $bubble = $('bubble'); $headerDots = $('headerDots'); $dots = $('dots'); $indicator = $('indicator');
     $result = $('result'); $panel = $('panel'); $toast = $('toast');
 
     loadSettings();
