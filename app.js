@@ -140,7 +140,7 @@
   }
 
   async function validateKey(key) {
-    key = (key || '').trim();
+    key = (key || '').replace(/['"]+/g, '').trim();
     if (!key) return { ok: false, error: 'empty_key' };
     if (key.length < 3) return { ok: false, error: 'invalid_key' };
 
@@ -164,9 +164,9 @@
       });
 
       if (r.status === 401) return { ok: false, error: 'invalid_key' };
-      
+
       const defaultModels = isDeepSeek ? ['deepseek-chat', 'deepseek-reasoner'] : ['gpt-4o-mini', 'gpt-4o', 'gpt-3.5-turbo'];
-      return { ok: r.ok || r.status === 429, models: defaultModels };
+      return { ok: true, models: defaultModels };
     } catch (e) {
       return { ok: false, error: 'network_or_cors' };
     }
