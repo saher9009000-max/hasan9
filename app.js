@@ -133,18 +133,19 @@
 
   async function validateKey(key) {
     if (!key) return { ok: false, error: 'empty_key' };
-    if (key.startsWith('sk-')) {
-      return { ok: true, models: ['gpt-4o-mini', 'gpt-4o', 'gpt-3.5-turbo'] };
-    }
+    const isDeepSeek = state.settings.model.toLowerCase().includes('deepseek') || key.length > 40;
+    const endpoint = isDeepSeek ? 'https://api.deepseek.com/models' : 'https://api.openai.com/v1/models';
+    
     try {
-      const r = await fetch('https://api.openai.com/v1/models', { headers: { Authorization: 'Bearer ' + key } });
+      const r = await fetch(endpoint, { headers: { Authorization: 'Bearer ' + key } });
       if (r.status === 401) return { ok: false, error: 'invalid_key' };
-      if (!r.ok) return { ok: true, models: ['gpt-4o-mini', 'gpt-4o'] };
+      if (!r.ok) return { ok: false, error: 'invalid_key' };
       const j = await r.json();
       const fetched = (j.data || []).map(m => m.id).sort();
-      return { ok: true, models: fetched.length ? fetched : ['gpt-4o-mini', 'gpt-4o'] };
+      const defaultModels = isDeepSeek ? ['deepseek-chat', 'deepseek-reasoner'] : ['gpt-4o-mini', 'gpt-4o', 'gpt-3.5-turbo'];
+      return { ok: true, models: fetched.length ? fetched : defaultModels };
     } catch { 
-      return { ok: true, models: ['gpt-4o-mini', 'gpt-4o'] }; 
+      return { ok: false, error: 'connection_failed' }; 
     }
   }
 
