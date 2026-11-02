@@ -78,9 +78,15 @@
             <label for="apiKey">مفتاح API</label>
             <div class="inline">
               <input type="password" id="apiKey" placeholder="sk-..." autocomplete="off" />
+              <button type="button" id="toggleApiUrl" class="dots-btn" title="رابط API مخصص">⋮</button>
               <button id="saveKey">تحقق وحفظ</button>
             </div>
             <div class="hint" id="keyStatus"></div>
+          </div>
+
+          <div class="row" id="apiUrlRow" style="display: none;">
+            <label for="apiUrl">رابط API (Endpoint)</label>
+            <input type="text" id="apiUrl" placeholder="https://api.openai.com/v1" autocomplete="off" />
           </div>
 
           <div class="row">
