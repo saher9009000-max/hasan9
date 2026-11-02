@@ -144,10 +144,32 @@
     if (!key) return { ok: false, error: 'empty_key' };
     if (key.length < 3) return { ok: false, error: 'invalid_key' };
 
-    const isDeepSeek = state.settings.model.toLowerCase().includes('deepseek') || (state.settings.apiUrl && state.settings.apiUrl.includes('deepseek'));
-    const defaultModels = isDeepSeek ? ['deepseek-chat', 'deepseek-reasoner'] : ['gpt-4o-mini', 'gpt-4o', 'gpt-3.5-turbo'];
-    
-    return { ok: true, models: defaultModels };
+    try {
+      const isDeepSeek = state.settings.model.toLowerCase().includes('deepseek') || (state.settings.apiUrl && state.settings.apiUrl.includes('deepseek'));
+      const customUrl = state.settings.apiUrl ? state.settings.apiUrl.trim() : '';
+      let endpoint;
+      let actualModel = state.settings.model || (isDeepSeek ? 'deepseek-chat' : 'gpt-4o-mini');
+
+      if (customUrl) {
+        endpoint = customUrl.endsWith('/chat/completions') ? customUrl : customUrl.replace(/\/+$/, '') + '/chat/completions';
+      } else {
+        endpoint = isDeepSeek ? 'https://api.deepseek.com/chat/completions' : 'https://api.openai.com/v1/chat/completions';
+        actualModel = isDeepSeek && actualModel === 'deepseek' ? 'deepseek-chat' : actualModel;
+      }
+
+      const r = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + key },
+        body: JSON.stringify({ model: actualModel, messages: [{ role: 'user', content: 'Hi' }], max_tokens: 5 })
+      });
+
+      if (r.status === 401) return { ok: false, error: 'invalid_key' };
+      
+      const defaultModels = isDeepSeek ? ['deepseek-chat', 'deepseek-reasoner'] : ['gpt-4o-mini', 'gpt-4o', 'gpt-3.5-turbo'];
+      return { ok: r.ok || r.status === 429, models: defaultModels };
+    } catch (e) {
+      return { ok: false, error: 'network_or_cors' };
+    }
   }
 
   function notify(msg, isError = false) {
