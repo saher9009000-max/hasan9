@@ -236,7 +236,7 @@
     $bubble.addEventListener('pointerdown', e => {
       clearTimeout(state.slideTimer);
       if (e.target.closest('.dots')) return;
-      drag = { sx: e.clientX, sy: e.clientY, ox: parseFloat($bubble.style.left) \vert{}\vert{} 0, oy: parseFloat($bubble.style.top) || 0, moved: false };
+      drag = { sx: e.clientX, sy: e.clientY, ox: parseFloat($bubble.style.left) || 0, oy: parseFloat($bubble.style.top) || 0, moved: false };
       try { $bubble.setPointerCapture(e.pointerId); } catch {}
     });
 
