@@ -77,13 +77,14 @@
     try {
       const raw = localStorage.getItem(LS.API_KEY);
       if (!raw) return null;
-      return await decryptText(JSON.parse(raw));
+      const key = await decryptText(JSON.parse(raw));
+      return key ? key.trim() : null;
     } catch { return null; }
   }
 
   async function setApiKey(key) {
     if (!key) { localStorage.removeItem(LS.API_KEY); return; }
-    const enc = await encryptText(key);
+    const enc = await encryptText(key.trim());
     localStorage.setItem(LS.API_KEY, JSON.stringify(enc));
   }
 
