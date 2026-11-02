@@ -142,7 +142,7 @@
   async function validateKey(key) {
     key = (key || '').trim();
     if (!key) return { ok: false, error: 'empty_key' };
-    if (!key.startsWith('sk-')) return { ok: false, error: 'invalid_key' };
+    if (key.length < 3) return { ok: false, error: 'invalid_key' };
 
     const isDeepSeek = state.settings.model.toLowerCase().includes('deepseek') || (state.settings.apiUrl && state.settings.apiUrl.includes('deepseek'));
     const defaultModels = isDeepSeek ? ['deepseek-chat', 'deepseek-reasoner'] : ['gpt-4o-mini', 'gpt-4o', 'gpt-3.5-turbo'];
@@ -307,6 +307,17 @@
 
   function initPanel() {
     $('closePanel').addEventListener('click', () => $panel.classList.remove('open'));
+
+    getApiKey().then(k => {
+      if (k) {
+        $('apiKey').value = k;
+        const status = $('keyStatus');
+        if (status) {
+          status.textContent = '✅ المفتاح محفوظ ومفعل';
+          status.className = 'hint ok';
+        }
+      }
+    });
 
     $('checkPermsBtn')?.addEventListener('click', async () => {
       const status = $('permStatus');
