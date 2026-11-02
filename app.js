@@ -599,28 +599,14 @@
   }
 
   async function validateKey(key) {
+    key = (key || '').trim();
     if (!key) return { ok: false, error: 'empty_key' };
-    const customUrl = state.settings.apiUrl ? state.settings.apiUrl.trim() : '';
-    let endpoint;
-    if (customUrl) {
-      const base = customUrl.replace(/\/chat\/completions\/?$/, '').replace(/\/+$/, '');
-      endpoint = base.endsWith('/models') ? base : base + '/models';
-    } else {
-      const isDeepSeek = state.settings.model.toLowerCase().includes('deepseek');
-      endpoint = isDeepSeek ? 'https://api.deepseek.com/models' : 'https://api.openai.com/v1/models';
-    }
+    if (!key.startsWith('sk-')) return { ok: false, error: 'invalid_key' };
+
+    const isDeepSeek = state.settings.model.toLowerCase().includes('deepseek') || (state.settings.apiUrl && state.settings.apiUrl.includes('deepseek'));
+    const defaultModels = isDeepSeek ? ['deepseek-chat', 'deepseek-reasoner'] : ['gpt-4o-mini', 'gpt-4o', 'gpt-3.5-turbo'];
     
-    try {
-      const r = await fetch(endpoint, { headers: { Authorization: 'Bearer ' + key } });
-      if (r.status === 401) return { ok: false, error: 'invalid_key' };
-      if (!r.ok) return { ok: false, error: 'invalid_key' };
-      const j = await r.json();
-      const fetched = (j.data || []).map(m => m.id).sort();
-      const defaultModels = isDeepSeek ? ['deepseek-chat', 'deepseek-reasoner'] : ['gpt-4o-mini', 'gpt-4o', 'gpt-3.5-turbo'];
-      return { ok: true, models: fetched.length ? fetched : defaultModels };
-    } catch { 
-      return { ok: false, error: 'connection_failed' }; 
-    }
+    return { ok: true, models: defaultModels };
   }
 
   function notify(msg, isError = false) {
