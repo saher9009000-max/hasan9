@@ -1,133 +1,187 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Turquoise Translate Overlay</title>
-  <link rel="stylesheet" href="styles.css" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0B1418">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ترجمة">
+<meta name="application-name" content="ترجمة">
+<title>ترجمة — منصة الترجمة الاحترافية</title>
+<link rel="manifest" id="manifestLink">
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="demo">
-    <header class="demo-head">
-      <div style="display: flex; align-items: center; gap: 10px;">
-        <h1 style="margin: 0; font-size: 24px; background: linear-gradient(135deg, #00a86b, #007f4f); -webkit-background-clip: text; background-clip: text; color: transparent;">ترجمة الأونيون</h1>
-      </div>
-      <div class="header-actions" style="display: flex; align-items: center; gap: 10px;">
-        <button class="dots-header" id="headerDots" title="الإعدادات">⋮</button>
-        <button class="theme-toggle-btn" id="themeToggle" title="الوضع الداكن">🌙</button>
-      </div>
-    </header>
 
-    <main class="demo-main">
-      <section class="card">
-        <h2>أو اكتب / الصق نصاً</h2>
-        <textarea id="inputText" rows="5" placeholder="اكتب النص هنا..."></textarea>
-        <button id="translateBtn" class="btn-primary">ترجم النص</button>
-      </section>
-    </main>
+<!-- شريط عدم الاتصال -->
+<div class="offline-banner" id="offlineBanner" hidden>
+  ⚠️ أنت غير متصل — الترجمة الجديدة تحتاج إنترنت، لكن الترجمات المحفوظة تعمل.
+</div>
 
-    <footer class="demo-foot">
-      <span>v1.0.1</span>
-      <span>MIT License</span>
-    </footer>
+<!-- الترويسة -->
+<header class="header">
+  <div class="header-right">
+    <div class="logo">ت</div>
+    <div class="brand">ترجمة</div>
   </div>
+  <div class="header-left">
+    <button class="install-btn" id="installBtn" hidden title="تثبيت التطبيق">⬇ تثبيت</button>
+    <button class="user-btn" id="userBtn" title="الحساب">م</button>
+  </div>
+</header>
 
-  <!-- ============ Overlay ============ -->
-  <div class="overlay" id="overlay">
-    <button class="bubble" id="bubble" title="ترجمة">
-      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-           stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M4 5h7M9 3v2c0 4.418-3.582 8-8 8"/>
-        <path d="M5 9c0 5 4 7 8 7"/>
-        <path d="M14 19l3.5-9 3.5 9"/>
-        <path d="M15.5 16h5"/>
-      </svg>
-    </button>
+<main class="main">
 
-    <button class="indicator" id="indicator" title="إظهار المترجم">‹</button>
+  <!-- صف اللغات -->
+  <section class="lang-row">
+    <div class="lang-field">
+      <label>من</label>
+      <select id="sourceLang">
+        <option value="auto">🌐 اكتشاف تلقائي</option>
+        <option value="ar">العربية</option>
+        <option value="en">الإنجليزية</option>
+        <option value="fr">الفرنسية</option>
+        <option value="es">الإسبانية</option>
+        <option value="de">الألمانية</option>
+        <option value="tr">التركية</option>
+        <option value="ru">الروسية</option>
+      </select>
+    </div>
+    <button class="swap-btn" id="swapBtn" title="تبديل اللغات">⇄</button>
+    <div class="lang-field">
+      <label>إلى</label>
+      <select id="targetLang">
+        <option value="ar">العربية</option>
+        <option value="en" selected>الإنجليزية</option>
+        <option value="fr">الفرنسية</option>
+        <option value="es">الإسبانية</option>
+        <option value="de">الألمانية</option>
+        <option value="tr">التركية</option>
+        <option value="ru">الروسية</option>
+      </select>
+    </div>
+  </section>
 
-    <div class="result" id="result"></div>
+  <!-- أنماط الترجمة -->
+  <section class="styles">
+    <button class="pill active" data-style="precise">دقيقة وباشرة</button>
+    <button class="pill" data-style="natural">طبيعية وسلسة</button>
+    <button class="pill" data-style="formal">رسمية</button>
+  </section>
 
-    <div class="panel" id="panel">
-      <div class="panel-head">
-        <span>إعدادات الترجمة</span>
-        <button class="close" id="closePanel" title="إغلاق">×</button>
+  <!-- أوضاع إضافية -->
+  <section class="toggles">
+    <label class="toggle">
+      <input type="checkbox" id="quietMode">
+      <span class="slider"></span>
+      <span class="toggle-label">🌿 هادئة</span>
+    </label>
+    <label class="toggle">
+      <input type="checkbox" id="aiMode">
+      <span class="slider"></span>
+      <span class="toggle-label">✨ ذكاء اصطناعي</span>
+    </label>
+  </section>
+
+  <!-- حقل الإدخال -->
+  <section class="input-section">
+    <textarea id="sourceText" placeholder="اكتب أو الصق النص هنا..." maxlength="5000"></textarea>
+    <div class="char-count"><span id="charCount">0</span> / 5000</div>
+  </section>
+
+  <!-- الملخص -->
+  <textarea id="summaryText" class="summary" placeholder="ملخص أو توجيه إضافي (اختياري)..." maxlength="500"></textarea>
+
+  <!-- أزرار التنفيذ -->
+  <section class="actions">
+    <button class="btn-import" id="importBtn">📎 استيراد</button>
+    <input type="file" id="fileInput" accept=".txt" hidden>
+    <button class="btn-translate" id="translateBtn">ترجم ✨</button>
+  </section>
+
+  <!-- معاينة الملف المستورد -->
+  <div class="file-preview" id="filePreview" hidden></div>
+
+  <!-- منطقة النتيجة -->
+  <section class="result-section">
+    <div class="result-toolbar">
+      <button class="tool" id="copyResult">📋 نسخ</button>
+      <button class="tool" id="ttsResult">🔊 استماع</button>
+      <button class="tool" id="exportResult">⬇ تصدير</button>
+    </div>
+    <div class="result" id="mainResult">النتيجة ستظهر هنا...</div>
+  </section>
+
+  <!-- مصفوفة 6 نتائج -->
+  <h3 class="section-title">البدائل الستة</h3>
+  <section class="variants" id="variantsGrid"></section>
+
+</main>
+
+<!-- الفقاعة العائمة -->
+<div class="bubble" id="bubble" role="button" aria-label="فتح الترجمة السريعة">ت</div>
+
+<!-- لوحة الفقاعة -->
+<div class="bubble-panel" id="bubblePanel">
+  <div class="bubble-header">
+    <span>⚡ ترجمة سريعة</span>
+    <button class="bubble-close" id="bubbleClose">×</button>
+  </div>
+  <textarea id="bubbleInput" placeholder="نص سريع للترجمة..." maxlength="500"></textarea>
+  <button class="btn-translate" id="bubbleTranslate">ترجم</button>
+  <div class="bubble-result" id="bubbleResult"></div>
+</div>
+
+<!-- أزرار جانبية عائمة -->
+<div class="side-buttons">
+  <button class="side-btn" id="historyBtn" title="السجل">🕘</button>
+  <button class="side-btn" id="settingsBtn" title="الإعدادات">⚙</button>
+</div>
+
+<!-- نافذة السجل -->
+<div class="modal" id="historyModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>🕘 السجل</h2>
+      <button class="modal-close" data-close="historyModal">×</button>
+    </div>
+    <div class="modal-body" id="historyList"></div>
+  </div>
+</div>
+
+<!-- نافذة الإعدادات -->
+<div class="modal" id="settingsModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>⚙ الإعدادات</h2>
+      <button class="modal-close" data-close="settingsModal">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="setting-row">
+        <label>حجم الخط</label>
+        <input type="range" id="fontSize" min="14" max="22" value="16">
       </div>
-      <div class="panel-body">
-        <div class="row">
-          <label for="modeSel">وضع الترجمة</label>
-          <select id="modeSel">
-            <option value="normal">ترجمة عادية</option>
-            <option value="ai">ترجمة بالذكاء الاصطناعي</option>
-          </select>
-        </div>
-
-        <div class="row">
-          <label for="srcSel">من (اليسار)</label>
-          <select id="srcSel"></select>
-        </div>
-
-        <div class="row">
-          <label for="tgtSel">إلى (اليمين)</label>
-          <select id="tgtSel"></select>
-        </div>
-
-        <div id="apiSection">
-          <div class="row">
-            <label for="apiKey">مفتاح API</label>
-            <div class="inline">
-              <input type="password" id="apiKey" placeholder="sk-..." autocomplete="off" />
-              <button type="button" id="toggleApiUrl" class="dots-btn" title="رابط API مخصص">⋮</button>
-              <button id="saveKey">تحقق وحفظ</button>
-            </div>
-            <div class="hint" id="keyStatus"></div>
-          </div>
-
-          <div class="row" id="apiUrlRow" style="display: none;">
-            <label for="apiUrl">رابط API (Endpoint)</label>
-            <input type="text" id="apiUrl" placeholder="https://api.openai.com/v1" autocomplete="off" />
-          </div>
-
-          <div class="row">
-            <label for="modelSel">النموذج</label>
-            <div class="inline">
-              <select id="modelSel"></select>
-              <button id="addModel" title="أضف نموذجاً">+</button>
-            </div>
-            <div class="inline" style="margin-top:6px">
-              <input type="text" id="newModel" placeholder="مثال: gpt-4o-mini" />
-            </div>
-          </div>
-        </div>
-
-        <div class="row">
-          <label for="opacity">شفافية الفقاعة</label>
-          <input type="range" id="opacity" min="0.3" max="1" step="0.04" />
-        </div>
-
-        <div class="row check">
-          <label for="dark">الوضع الداكن</label>
-          <input type="checkbox" id="dark" />
-        </div>
-
-        <div class="row check">
-          <label for="notify">الإشعارات</label>
-          <input type="checkbox" id="notify" />
-        </div>
-
-        <div class="row">
-          <label>الإذونات والصلاحيات</label>
-          <div class="inline">
-            <button id="checkPermsBtn" type="button">فحص الإذونات</button>
-          </div>
-          <div class="hint" id="permStatus">الوضع العادي نشط</div>
-        </div>
+      <div class="setting-row">
+        <label>الصوت</label>
+        <select id="ttsVoice"><option value="">افتراضي</option></select>
+      </div>
+      <div class="setting-row">
+        <label>سرعة النطق</label>
+        <input type="range" id="ttsRate" min="0.5" max="1.5" step="0.1" value="1">
+      </div>
+      <div class="setting-row">
+        <label>مسح السجل</label>
+        <button class="btn-mini" id="clearHistory">مسح</button>
       </div>
     </div>
-
-    <div class="toast" id="toast"></div>
   </div>
+</div>
 
-  <script src="app.js"></script>
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script src="app.js"></script>
 </body>
 </html>
