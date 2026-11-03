@@ -1,151 +1,150 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-    // --- 8 & 9. توليد مصفوفة النتائج (6 خانات) مع الأدوات ---
-    const matrixGrid = document.querySelector('.matrix-grid');
-    const tools = [
-        { icon: '📋', title: 'نسخ' },
-        { icon: '🔗', title: 'مشاركة' },
-        { icon: '🔊', title: 'استماع (TTS)' },
-        { icon: '🔄', title: 'إعادة توليد' },
-        { icon: '⭐', title: 'مفضلة' },
-        { icon: '⚖️', title: 'مقارنة' },
-        { icon: '✏️', title: 'تعديل الأصل' }
+    // --- 8 & 9. توليد مصفوفة النتائج (3 صفوف عمودية) ---
+    const matrixContainer = document.getElementById('matrixContainer');
+    const toolsConfig = [
+        { icon: 'fa-copy', title: 'نسخ' },
+        { icon: 'fa-share-alt', title: 'مشاركة' },
+        { icon: 'fa-volume-up', title: 'استماع (TTS)' },
+        { icon: 'fa-sync-alt', title: 'إعادة توليد' },
+        { icon: 'fa-star', title: 'مفضلة' },
+        { icon: 'fa-balance-scale', title: 'مقارنة' },
+        { icon: 'fa-edit', title: 'تعديل الأصل' }
     ];
 
-    for (let i = 1; i <= 6; i++) {
-        const cell = document.createElement('div');
-        cell.className = 'matrix-cell';
+    // بيانات تجريبية للبديلات
+    const alternatives = [
+        "بديل 1 (دقيق): هذه ترجمة حرفية تحافظ على بنية الجملة الأصلية بدقة عالية.",
+        "بديل 2 (طبيعي): هذه صياغة أكثر سلاسة وطبيعية تناسب المحادثات اليومية.",
+        "بديل 3 (إبداعي AI): نسخة محسنة بالذكاء الاصطناعي تركز على السياق والمعنى العميق."
+    ];
+
+    alternatives.forEach((text, index) => {
+        const card = document.createElement('div');
+        card.className = 'matrix-card';
         
-        let toolsHtml = tools.map(t => 
-            `<button class="tool-btn neon-circle" title="${t.title}" data-action="${t.title}">${t.icon}</button>`
+        let toolsHtml = toolsConfig.map(tool => 
+            `<button class="tool-icon neon-circle" title="${tool.title}" data-action="${tool.title}">
+                <i class="fas ${tool.icon}"></i>
+            </button>`
         ).join('');
 
-        cell.innerHTML = `
-            <div class="cell-text">بديل ترجمي ${i}: هذا نص تجريبي يوضح شكل النتيجة في الخانة.</div>
-            <div class="cell-tools">${toolsHtml}</div>
+        card.innerHTML = `
+            <div class="card-content">${text}</div>
+            <div class="card-tools">
+                ${toolsHtml}
+            </div>
         `;
-        matrixGrid.appendChild(cell);
-    }
-
-    // --- 3. تبديل اللغات مع الحركة ---
-    const swapBtn = document.getElementById('swapBtn');
-    const sourceLang = document.getElementById('sourceLang');
-    const targetLang = document.getElementById('targetLang');
-
-    swapBtn.addEventListener('click', () => {
-        swapBtn.classList.add('rotating');
-        setTimeout(() => swapBtn.classList.remove('rotating'), 300);
-        
-        const tempVal = sourceLang.value;
-        sourceLang.value = targetLang.value;
-        targetLang.value = tempVal;
-
-        // تبديل اتجاه النص (RTL/LTR)
-        document.body.dir = (targetLang.value === 'ar') ? 'rtl' : 'ltr';
+        matrixContainer.appendChild(card);
     });
 
-    // --- 4. أنماط الترجمة (تحديد الزر النشط) ---
-    const modePills = document.querySelectorAll('.mode-pill');
-    modePills.forEach(pill => {
-        pill.addEventListener('click', () => {
-            modePills.forEach(p => p.classList.remove('active'));
-            pill.classList.add('active');
-            console.log(`تم اختيار النمط: ${pill.dataset.mode}`);
-            // هنا يتم استدعاء API لتغيير نمط الترجمة
-        });
-    });
-
-    // --- 9. وظائف أدوات المصفوفة ---
-    matrixGrid.addEventListener('click', (e) => {
-        const btn = e.target.closest('.tool-btn');
+    // معالجة أحداث أدوات المصفوفة
+    matrixContainer.addEventListener('click', (e) => {
+        const btn = e.target.closest('.tool-icon');
         if (!btn) return;
 
         const action = btn.dataset.action;
-        const cellText = btn.closest('.matrix-cell').querySelector('.cell-text').innerText;
+        const cardText = btn.closest('.matrix-card').querySelector('.card-content').innerText;
 
-        switch(action) {
-            case 'نسخ':
-                navigator.clipboard.writeText(cellText);
-                showTooltip(btn, 'تم النسخ!');
-                break;
-            case 'استماع (TTS)':
-                const utterance = new SpeechSynthesisUtterance(cellText);
-                utterance.lang = targetLang.value;
-                window.speechSynthesis.speak(utterance);
-                break;
-            case 'مفضلة':
-                btn.style.color = '#FFD700';
-                btn.style.borderColor = '#FFD700';
-                btn.style.boxShadow = '0 0 10px #FFD700';
-                break;
-            default:
-                console.log(`تنفيذ الإجراء: ${action}`);
+        if (action === 'نسخ') {
+            navigator.clipboard.writeText(cardText).then(() => {
+                showFeedback(btn, 'تم النسخ!');
+            });
+        } else if (action === 'استماع (TTS)') {
+            const utterance = new SpeechSynthesisUtterance(cardText);
+            // تحديد اللغة بناءً على الاختيار (مثال افتراضي)
+            utterance.lang = document.getElementById('targetLangSelect').value; 
+            window.speechSynthesis.speak(utterance);
+        } else if (action === 'مفضلة') {
+            btn.style.color = '#FFD700'; // لون الذهب للمفضلة
+            btn.style.borderColor = '#FFD700';
+            btn.style.boxShadow = '0 0 10px #FFD700';
+        } else {
+            console.log(`تنفيذ: ${action}`);
         }
     });
 
-    // مساعدة لعرض إشعار سريع
-    function showTooltip(element, message) {
-        const originalTitle = element.title;
-        element.title = message;
-        setTimeout(() => element.title = originalTitle, 1500);
+    function showFeedback(element, msg) {
+        const originalTitle = element.getAttribute('title');
+        element.setAttribute('title', msg);
+        setTimeout(() => element.setAttribute('title', originalTitle), 1500);
     }
 
-    // --- 2. الفقاعة العائمة (السحب والإفلات) ---
-    const bubble = document.getElementById('transBubble');
-    let isDragging = false;
-    let offsetX, offsetY;
+    // --- 3. تبديل اللغات والاتجاه ---
+    const swapBtn = document.getElementById('swapBtn');
+    const sourceLang = document.getElementById('sourceLangSelect');
+    const targetLang = document.getElementById('targetLangSelect');
+    const body = document.body;
 
-    bubble.addEventListener('mousedown', (e) => {
-        isDragging = true;
-        bubble.style.cursor = 'grabbing';
-        const rect = bubble.getBoundingClientRect();
-        offsetX = e.clientX - rect.left;
-        offsetY = e.clientY - rect.top;
+    swapBtn.addEventListener('click', () => {
+        swapBtn.classList.add('rotating');
+        setTimeout(() => swapBtn.classList.remove('rotating'), 400);
+
+        const temp = sourceLang.value;
+        sourceLang.value = targetLang.value;
+        targetLang.value = temp;
+
+        // تغيير اتجاه الصفحة بناءً على اللغة الهدف
+        if (targetLang.value === 'ar') {
+            body.setAttribute('dir', 'rtl');
+            body.lang = 'ar';
+        } else {
+            body.setAttribute('dir', 'ltr');
+            body.lang = targetLang.value;
+        }
     });
 
-    document.addEventListener('mousemove', (e) => {
-        if (!isDragging) return;
-        requestAnimationFrame(() => {
-            bubble.style.left = `${e.clientX - offsetX}px`;
-            bubble.style.top = `${e.clientY - offsetY}px`;
-            bubble.style.bottom = 'auto'; // إلغاء التثبيت السفلي
+    // --- 4. أنماط الترجمة ---
+    const modeBtns = document.querySelectorAll('.mode-btn');
+    modeBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            modeBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            console.log(`النمط المختار: ${btn.dataset.style}`);
         });
     });
 
-    document.addEventListener('mouseup', () => {
-        isDragging = false;
-        bubble.style.cursor = 'grab';
-    });
+    // --- 6. زر الصق الذكي (Smart Paste) ---
+    const smartPasteBtn = document.getElementById('smartPasteBtn');
+    const sourceText = document.getElementById('sourceText');
 
-    // إغلاق الفقاعة
-    document.querySelector('.bubble-close').addEventListener('click', () => {
-        bubble.style.display = 'none';
+    smartPasteBtn.addEventListener('click', async () => {
+        try {
+            const text = await navigator.clipboard.readText();
+            // محاكاة معالجة الذكاء الاصطناعي (تنظيف وتنسيق)
+            const cleanedText = text.trim().replace(/\s+/g, ' ');
+            sourceText.value = cleanedText;
+            
+            // تأثير بصري عند النجاح
+            smartPasteBtn.style.transform = 'scale(1.2)';
+            setTimeout(() => smartPasteBtn.style.transform = 'scale(1)', 200);
+        } catch (err) {
+            alert('يرجى السماح بالوصول إلى الحافظة أو استخدم Ctrl+V');
+        }
     });
 
     // --- 6. استيراد الملفات (Drag & Drop) ---
     const dropZone = document.getElementById('dropZone');
     const fileInput = document.getElementById('fileInput');
-    const sourceText = document.getElementById('sourceText');
 
     dropZone.addEventListener('click', () => fileInput.click());
 
     dropZone.addEventListener('dragover', (e) => {
         e.preventDefault();
-        dropZone.style.borderColor = 'var(--neon-turquoise)';
-        dropZone.style.background = 'rgba(0, 255, 196, 0.05)';
+        dropZone.style.background = 'rgba(0, 255, 196, 0.1)';
+        dropZone.style.borderColor = 'var(--neon-color)';
     });
 
     dropZone.addEventListener('dragleave', () => {
-        dropZone.style.borderColor = '';
         dropZone.style.background = '';
+        dropZone.style.borderColor = '';
     });
 
     dropZone.addEventListener('drop', (e) => {
         e.preventDefault();
-        dropZone.style.borderColor = '';
         dropZone.style.background = '';
-        const file = e.dataTransfer.files[0];
-        handleFile(file);
+        dropZone.style.borderColor = '';
+        handleFile(e.dataTransfer.files[0]);
     });
 
     fileInput.addEventListener('change', (e) => {
@@ -154,43 +153,86 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function handleFile(file) {
         if (!file) return;
-        if (file.size > 10 * 1024 * 1024) { // 13. قيود الحجم (10MB)
-            alert('حجم الملف يتجاوز الحد المسموح (10MB)');
+        if (file.size > 10 * 1024 * 1024) {
+            alert('حجم الملف كبير جداً (الحد الأقصى 10MB)');
             return;
         }
-        if (file.name.endsWith('.txt')) {
+        
+        if (file.type === 'text/plain' || file.name.endsWith('.txt')) {
             const reader = new FileReader();
             reader.onload = (e) => sourceText.value = e.target.result;
             reader.readAsText(file);
         } else {
-            alert('دعم PDF و DOCX يتطلب معالجة عبر الخادم (Backend API).');
+            // محاكاة رفع ملفات PDF/DOCX
+            alert(`تم اختيار ملف: ${file.name}\nسيتم معالجته عبر الخادم (محاكاة).`);
         }
     }
 
+    // --- 2. الفقاعة العائمة (السحب) ---
+    const bubble = document.getElementById('transBubble');
+    let isDragging = false;
+    let startX, startY, initialLeft, initialTop;
+
+    bubble.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        bubble.style.cursor = 'grabbing';
+        const rect = bubble.getBoundingClientRect();
+        startX = e.clientX;
+        startY = e.clientY;
+        initialLeft = rect.left;
+        initialTop = rect.top;
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        
+        // استخدام requestAnimationFrame لأداء أفضل
+        requestAnimationFrame(() => {
+            bubble.style.left = `${initialLeft + dx}px`;
+            bubble.style.top = `${initialTop + dy}px`;
+            bubble.style.bottom = 'auto'; // إلغاء التثبيت السفلي أثناء السحب
+        });
+    });
+
+    document.addEventListener('mouseup', () => {
+        isDragging = false;
+        bubble.style.cursor = 'grab';
+    });
+
+    document.querySelector('.bubble-close').addEventListener('click', () => {
+        bubble.style.opacity = '0';
+        setTimeout(() => bubble.style.display = 'none', 300);
+    });
+
     // --- 11. اختصارات لوحة المفاتيح ---
     document.addEventListener('keydown', (e) => {
-        // Ctrl + Enter للترجمة
+        // Ctrl + Enter لتنفيذ الترجمة (محاكاة)
         if (e.ctrlKey && e.key === 'Enter') {
             e.preventDefault();
-            triggerTranslation();
+            performTranslation();
         }
-        // Escape لإغلاق الفقاعة
-        if (e.key === 'Escape') {
+        // Esc لإغلاق الفقاعة
+        if (e.key === 'Escape' && bubble.style.display !== 'none') {
             bubble.style.display = 'none';
         }
     });
 
-    function triggerTranslation() {
-        const text = sourceText.value;
-        const mode = document.querySelector('.mode-pill.active').dataset.mode;
-        const isAI = document.getElementById('aiEnhance').matches(':hover'); // مثال
+    function performTranslation() {
+        const input = sourceText.value;
+        const resultBox = document.getElementById('mainResult');
         
-        console.log(`جاري الترجمة: "${text}" | النمط: ${mode}`);
-        document.getElementById('mainResult').innerText = "جاري المعالجة...";
+        if (!input.trim()) {
+            resultBox.innerText = "الرجاء إدخال نص للترجمة.";
+            return;
+        }
+
+        resultBox.innerText = "جاري المعالجة بالذكاء الاصطناعي...";
         
-        // محاكاة استدعاء API
+        // محاكاة تأخير الشبكة
         setTimeout(() => {
-            document.getElementById('mainResult').innerText = `هذه ترجمة تجريبية للنص: "${text}" باستخدام النمط (${mode}).`;
+            resultBox.innerText = `[ترجمة نهائية]: ${input} \n\n(تمت المعالجة بنجاح باستخدام النمط المحدد).`;
         }, 1000);
     }
 
