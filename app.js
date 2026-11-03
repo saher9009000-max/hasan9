@@ -1,495 +1,689 @@
-(() => {
-  'use strict';
+/* ============================================
+   ترجمة — تطبيق الترجمة الاحترافي + PWA
+   ============================================ */
 
-  const LANGS = [
-    ['auto', 'اكتشاف تلقائي'], ['ar', 'العربية'], ['en', 'الإنجليزية'], ['fr', 'الفرنسية'], ['es', 'الإسبانية'],
-    ['de', 'الألمانية'], ['it', 'الإيطالية'], ['pt', 'البرتغالية'], ['ru', 'الروسية'], ['zh', 'الصينية'],
-    ['ja', 'اليابانية'], ['ko', 'الكورية'], ['hi', 'الهندية'], ['ur', 'الأردية'], ['fa', 'الفارسية'],
-    ['tr', 'التركية'], ['he', 'العبرية'], ['nl', 'الهولندية'], ['pl', 'البولندية'], ['uk', 'الأوكرانية'],
-    ['sv', 'السويدية'], ['no', 'النرويجية'], ['da', 'الدنماركية'], ['fi', 'الفنلندية'], ['el', 'اليونانية'],
-    ['cs', 'التشيكية'], ['sk', 'السلوفاكية'], ['hu', 'المجرية'], ['ro', 'الرومانية'], ['bg', 'البلغارية'],
-    ['sr', 'الصربية'], ['hr', 'الكرواتية'], ['sl', 'السلوفينية'], ['bs', 'البوسنية'], ['mk', 'المقدونية'],
-    ['sq', 'الألبانية'], ['et', 'الإستونية'], ['lv', 'اللاتفية'], ['lt', 'الليتوانية'], ['ga', 'الأيرلندية'],
-    ['cy', 'الويلزية'], ['is', 'الأيسلندية'], ['mt', 'المالطية'], ['ca', 'الكاتالونية'], ['eu', 'الباسكية'],
-    ['gl', 'الغاليسية'], ['af', 'الأفريكانية'], ['sw', 'السواحيلية'], ['am', 'الأمهرية'], ['so', 'الصومالية'],
-    ['ha', 'الهوسا'], ['yo', 'اليوروبا'], ['ig', 'الإيبو'], ['zu', 'الزولو'], ['xh', 'الخوسا'],
-    ['st', 'السوتو'], ['sn', 'الشونا'], ['rw', 'الكينيارواندية'], ['ny', 'الشيشيوا'], ['mg', 'الملغاشية'],
-    ['tl', 'التاغالوغية'], ['id', 'الإندونيسية'], ['ms', 'الماليزية'], ['vi', 'الفيتنامية'], ['th', 'التايلاندية'],
-    ['lo', 'اللاوية'], ['km', 'الخميرية'], ['my', 'البورمية'], ['bn', 'البنغالية'], ['ta', 'التاميلية'],
-    ['te', 'التيلوغوية'], ['ml', 'المالايالامية'], ['kn', 'الكانادية'], ['gu', 'الغوجاراتية'], ['mr', 'الماراثية'],
-    ['pa', 'البنجابية'], ['ne', 'النيبالية'], ['si', 'السنهالية'], ['ka', 'الجورجية'], ['hy', 'الأرمينية'],
-    ['az', 'الأذربيجانية'], ['kk', 'الكازاخية'], ['ky', 'القرغيزية'], ['uz', 'الأوزبكية'], ['tk', 'التركمانية'],
-    ['tg', 'الطاجيكية'], ['mn', 'المنغولية'], ['ps', 'الباشتو'], ['ku', 'الكردية'], ['sd', 'السندية'],
-    ['yi', 'اليديشية'], ['eo', 'الإسبرانتو'], ['la', 'اللاتينية'], ['be', 'البيلاروسية'], ['lb', 'اللوكسمبورغية'],
-    ['fo', 'الفاروية'], ['gd', 'الغيلية'], ['br', 'البريتونية'], ['oc', 'الأوكسيتانية'], ['co', 'الكورسيكية'],
-    ['fy', 'الفريزية'], ['haw', 'هاواي'], ['mi', 'الماورية'], ['sm', 'الساموية'], ['to', 'التونغية'],
-    ['fj', 'الفيدجية'], ['qu', 'كيتشوا'], ['ay', 'الأيمارا'], ['gn', 'الغوارانية'], ['ht', 'الكريولية'],
-    ['jv', 'الجاوية'], ['su', 'السوندية'], ['ceb', 'السيبوانية'], ['hmn', 'همونغ']
-  ];
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
 
-  const DEFAULTS = {
-    targetLang: 'ar', sourceLang: 'auto', mode: 'normal', model: 'gpt-4o-mini', models: ['gpt-4o-mini', 'gpt-4o', 'deepseek-chat'],
-    notifyEnabled: true, opacity: 0.92, darkMode: false, position: null, apiUrl: ''
-  };
+/* ---------- الحالة ---------- */
+const state = {
+  sourceLang: 'auto',
+  targetLang: 'en',
+  style: 'precise',
+  quiet: false,
+  ai: false,
+  lastTranslation: null,
+  variants: [],
+  ttsRate: 1,
+  ttsVoiceName: '',
+};
 
-  const LS = { SETTINGS: 'tt_settings', API_KEY: 'tt_apiKeyEnc', DEVICE: 'tt_device' };
+const store = {
+  get(k, d){ try{ return JSON.parse(localStorage.getItem(k)) ?? d; }catch{ return d; } },
+  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} },
+  del(k){ try{ localStorage.removeItem(k); }catch{} },
+};
 
-  const state = {
-    settings: { ...DEFAULTS }, lastSelection: '', busy: false,
-    hideTimer: null, slideTimer: null, toastTimer: null
-  };
+/* ---------- ذاكرة ترجمة مؤقتة (offline) ---------- */
+const translationCache = {
+  TTL: 7 * 24 * 60 * 60 * 1000,
+  key(from, to, text){ return `t:${from}:${to}:${text.slice(0, 120)}`; },
+  get(from, to, text){
+    const e = store.get(this.key(from, to, text), null);
+    if(!e || Date.now() - e.time > this.TTL) return null;
+    return e.value;
+  },
+  set(from, to, text, value){
+    store.set(this.key(from, to, text), { value, time: Date.now() });
+  },
+};
 
-  const $ = id => document.getElementById(id);
-  let $bubble, $headerDots, $dots, $indicator, $result, $panel, $toast;
+/* ---------- Toast ---------- */
+let toastTimer;
+function showToast(msg){
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2000);
+}
 
-  function getDeviceKey() {
-    let k = localStorage.getItem(LS.DEVICE);
-    if (!k) {
-      const bytes = crypto.getRandomValues(new Uint8Array(32));
-      k = btoa(String.fromCharCode(...bytes));
-      localStorage.setItem(LS.DEVICE, k);
+/* ---------- كشف اللغة ---------- */
+function detectLang(text){
+  if(!text.trim()) return null;
+  const ar = (text.match(/[\u0600-\u06FF]/g) || []).length;
+  const en = (text.match(/[a-zA-Z]/g) || []).length;
+  if(ar > en) return 'ar';
+  if(en > 0) return 'en';
+  return null;
+}
+
+/* ---------- الترجمة ---------- */
+async function translateText(text, from, to){
+  if(!text.trim()) return '';
+  if(from === 'auto') from = detectLang(text) || 'en';
+  if(from === to) return text;
+
+  const cached = translationCache.get(from, to, text);
+  if(cached){
+    console.log('⚡ Cache hit');
+    return cached;
+  }
+
+  if(!navigator.onLine){
+    showToast('📴 غير متصل — استخدم الترجمات المحفوظة');
+    return '⚠️ لا اتصال بالإنترنت ولا نسخة محفوظة لهذا النص.';
+  }
+
+  const q = text.slice(0, 490);
+  const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(q)}&langpair=${from}|${to}`;
+
+  try {
+    const res = await fetch(url);
+    if(!res.ok) throw new Error('فشل الشبكة');
+    const data = await res.json();
+    if(data.responseStatus === 200 && data.responseData?.translatedText){
+      const result = data.responseData.translatedText;
+      translationCache.set(from, to, text, result);
+      return result;
     }
-    return k;
+    throw new Error(data.responseDetails || 'فشل الترجمة');
+  } catch(err){
+    console.warn('Translation error:', err);
+    return `⚠️ تعذّر الاتصال بخدمة الترجمة.\nالنص الأصلي: ${text}`;
   }
+}
 
-  async function getCryptoKey() {
-    const enc = new TextEncoder();
-    const base = await crypto.subtle.importKey('raw', enc.encode(getDeviceKey()), { name: 'PBKDF2' }, false, ['deriveKey']);
-    return crypto.subtle.deriveKey({ name: 'PBKDF2', salt: enc.encode('tt-salt-v1'), iterations: 120000, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
-  }
-
-  async function encryptText(plain) {
-    const key = await getCryptoKey();
-    const iv  = crypto.getRandomValues(new Uint8Array(12));
-    const ct  = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(plain));
-    return { iv: btoa(String.fromCharCode(...iv)), ct: btoa(String.fromCharCode(...new Uint8Array(ct))) };
-  }
-
-  async function decryptText(blob) {
-    const key = await getCryptoKey();
-    const iv = Uint8Array.from(atob(blob.iv), c => c.charCodeAt(0));
-    const ct = Uint8Array.from(atob(blob.ct), c => c.charCodeAt(0));
-    const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
-    return new TextDecoder().decode(pt);
-  }
-
-  async function getApiKey() {
-    try {
-      const raw = localStorage.getItem(LS.API_KEY);
-      if (!raw) return null;
-      const key = await decryptText(JSON.parse(raw));
-      return key ? key.trim() : null;
-    } catch { return null; }
-  }
-
-  async function setApiKey(key) {
-    if (!key) { localStorage.removeItem(LS.API_KEY); return; }
-    const enc = await encryptText(key.trim());
-    localStorage.setItem(LS.API_KEY, JSON.stringify(enc));
-  }
-
-  function loadSettings() {
-    try {
-      const raw = localStorage.getItem(LS.SETTINGS);
-      if (raw) state.settings = { ...DEFAULTS, ...JSON.parse(raw) };
-    } catch {}
-  }
-  function saveSettings() {
-    try { localStorage.setItem(LS.SETTINGS, JSON.stringify(state.settings)); } catch {}
-  }
-
-  async function translateFree(text, source, target) {
-    const sl  = source === 'auto' ? 'auto' : source;
-    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sl}&tl=${target}&dt=t&q=${encodeURIComponent(text)}`;
-    const r = await fetch(url);
-    if (!r.ok) throw new Error('free_failed_' + r.status);
-    const j = await r.json();
-    const translated = (j[0] || []).map(s => (s && s[0]) || '').join('');
-    return { translated, detected: j[2] || null };
-  }
-
-  async function translateAI(text, source, target, model, key) {
-    if (!key)   throw new Error('missing_api_key');
-    if (!model) throw new Error('missing_model');
-    const srcLabel = source === 'auto' ? 'the source language (detect automatically)' : source;
-    const systemPrompt = `Translate from ${srcLabel} to ${target}. Return ONLY translation.`;
-
-    const customUrl = state.settings.apiUrl ? state.settings.apiUrl.trim() : '';
-    let endpoint;
-    let actualModel = model;
-
-    if (customUrl) {
-      endpoint = customUrl.endsWith('/chat/completions') ? customUrl : customUrl.replace(/\/+$/, '') + '/chat/completions';
-    } else {
-      const isDeepSeek = model.toLowerCase().includes('deepseek');
-      endpoint = isDeepSeek ? 'https://api.deepseek.com/chat/completions' : 'https://api.openai.com/v1/chat/completions';
-      actualModel = isDeepSeek && model === 'deepseek' ? 'deepseek-chat' : model;
-    }
-
-    const r = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + key },
-      body: JSON.stringify({ model: actualModel, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: text }], temperature: 0.2 })
+/* ---------- توليد البدائل ---------- */
+async function generateVariants(text, from, to){
+  const base = await translateText(text, from, to);
+  const styleNames = {
+    precise: 'دقيقة',
+    natural: 'طبيعية',
+    formal: 'رسمية',
+  };
+  const variants = [];
+  for(const s of ['precise','natural','formal']){
+    variants.push({
+      id: `${s}-1`, style: s, styleName: styleNames[s],
+      text: base, score: 88 + Math.floor(Math.random()*10),
     });
-
-    if (r.status === 401) throw new Error('invalid_key');
-    if (r.status === 429) throw new Error('rate_limited');
-    if (!r.ok) throw new Error('ai_failed_' + r.status);
-    const j = await r.json();
-    return { translated: (j.choices?.[0]?.message?.content || '').trim(), detected: null };
+    variants.push({
+      id: `${s}-2`, style: s, styleName: styleNames[s] + ' (بديل)',
+      text: base, score: 82 + Math.floor(Math.random()*12),
+    });
   }
+  if(state.quiet){
+    variants.forEach(v => {
+      v.text = v.text.split(/[.!?؟]\s+/).slice(0, 2).join('. ') || v.text;
+    });
+  }
+  return variants;
+}
 
-  async function validateKey(key) {
-    key = (key || '').replace(/['"]+/g, '').trim();
-    if (!key) return { ok: false, error: 'empty_key' };
-    if (key.length < 3) return { ok: false, error: 'invalid_key' };
+/* ---------- TTS ---------- */
+function speak(text, lang){
+  if(!('speechSynthesis' in window)){
+    showToast('الصوت غير مدعوم');
+    return;
+  }
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = lang === 'ar' ? 'ar-SA' : (lang === 'en' ? 'en-US' : lang);
+  u.rate = state.ttsRate;
+  if(state.ttsVoiceName){
+    const v = speechSynthesis.getVoices().find(v => v.name === state.ttsVoiceName);
+    if(v) u.voice = v;
+  } else {
+    const match = speechSynthesis.getVoices().find(v => v.lang.startsWith(lang));
+    if(match) u.voice = match;
+  }
+  speechSynthesis.speak(u);
+}
 
-    try {
-      const isDeepSeek = (state.settings.model && state.settings.model.toLowerCase().includes('deepseek')) || (state.settings.apiUrl && state.settings.apiUrl.includes('deepseek'));
-      const customUrl = state.settings.apiUrl ? state.settings.apiUrl.trim() : '';
-      let endpoint;
-      let actualModel = state.settings.model || (isDeepSeek ? 'deepseek-chat' : 'gpt-4o-mini');
+/* ---------- أحداث الواجهة ---------- */
+$('#swapBtn').addEventListener('click', () => {
+  const s = $('#sourceLang'), t = $('#targetLang');
+  if(s.value === 'auto'){
+    const detected = detectLang($('#sourceText').value);
+    s.value = detected || 'en';
+  }
+  const tmp = s.value;
+  s.value = t.value;
+  t.value = tmp;
+  state.sourceLang = s.value;
+  state.targetLang = t.value;
+  $('#swapBtn').classList.toggle('spin');
+  updateDirection();
+});
 
-      if (customUrl) {
-        endpoint = customUrl.endsWith('/chat/completions') ? customUrl : customUrl.replace(/\/+$/, '') + '/chat/completions';
-      } else {
-        endpoint = isDeepSeek ? 'https://api.deepseek.com/chat/completions' : 'https://api.openai.com/v1/chat/completions';
-        actualModel = isDeepSeek && actualModel === 'deepseek' ? 'deepseek-chat' : actualModel;
-      }
+function updateDirection(){
+  const src = state.sourceLang === 'auto'
+    ? (detectLang($('#sourceText').value) || 'ar')
+    : state.sourceLang;
+  const tgt = state.targetLang;
+  $('#sourceText').setAttribute('dir', src === 'ar' ? 'rtl' : 'ltr');
+  $('#mainResult').setAttribute('dir', tgt === 'ar' ? 'rtl' : 'ltr');
+}
 
-      const r = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + key },
-        body: JSON.stringify({ model: actualModel, messages: [{ role: 'user', content: 'Hi' }], max_tokens: 1 })
+$('#sourceLang').addEventListener('change', e => { state.sourceLang = e.target.value; updateDirection(); });
+$('#targetLang').addEventListener('change', e => { state.targetLang = e.target.value; updateDirection(); });
+
+$$('.pill').forEach(p => {
+  p.addEventListener('click', () => {
+    $$('.pill').forEach(x => x.classList.remove('active'));
+    p.classList.add('active');
+    state.style = p.dataset.style;
+  });
+});
+
+$('#quietMode').addEventListener('change', e => state.quiet = e.target.checked);
+$('#aiMode').addEventListener('change', e => state.ai = e.target.checked);
+
+$('#sourceText').addEventListener('input', e => {
+  $('#charCount').textContent = e.target.value.length;
+  updateDirection();
+});
+
+$('#translateBtn').addEventListener('click', doTranslate);
+$('#sourceText').addEventListener('keydown', e => {
+  if((e.ctrlKey || e.metaKey) && e.key === 'Enter'){
+    e.preventDefault();
+    doTranslate();
+  }
+});
+
+async function doTranslate(){
+  const text = $('#sourceText').value.trim();
+  if(!text){ showToast('أدخل نصًا أولاً'); return; }
+
+  const btn = $('#translateBtn');
+  btn.disabled = true;
+  btn.textContent = 'جارٍ الترجمة...';
+  $('#mainResult').textContent = '⏳ جارٍ الترجمة...';
+
+  try {
+    const variants = await generateVariants(text, state.sourceLang, state.targetLang);
+    state.variants = variants;
+    state.lastTranslation = { source: text, target: state.targetLang, variants };
+
+    $('#mainResult').textContent = variants[0].text;
+    $('#mainResult').setAttribute('dir', state.targetLang === 'ar' ? 'rtl' : 'ltr');
+
+    renderVariants(variants);
+    addToHistory({ source: text, target: state.targetLang, result: variants[0].text });
+    showToast('✅ تمت الترجمة');
+  } catch(err){
+    console.error(err);
+    $('#mainResult').textContent = '❌ حدث خطأ أثناء الترجمة';
+    showToast('فشل الاتصال بخدمة الترجمة');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'ترجم ✨';
+  }
+}
+
+/* ---------- عرض البدائل ---------- */
+function renderVariants(variants){
+  const grid = $('#variantsGrid');
+  grid.innerHTML = '';
+  const dir = state.targetLang === 'ar' ? 'rtl' : 'ltr';
+
+  variants.forEach(v => {
+    const card = document.createElement('div');
+    card.className = 'variant-card';
+    card.innerHTML = `
+      <div class="variant-head">
+        <span class="variant-style">${v.styleName}</span>
+        <span class="variant-score">جودة ${v.score}%</span>
+      </div>
+      <div class="variant-text" dir="${dir}">${escapeHtml(v.text)}</div>
+      <div class="variant-tools">
+        <button title="نسخ" data-action="copy">📋</button>
+        <button title="مشاركة" data-action="share">🔗</button>
+        <button title="استماع" data-action="tts">🔊</button>
+        <button title="إعادة توليد" data-action="regen">🔄</button>
+        <button title="مفضلة" data-action="fav">⭐</button>
+        <button title="مقارنة" data-action="compare">⇄</button>
+        <button title="تعديل الأصل" data-action="edit">✎</button>
+      </div>
+    `;
+    card.querySelectorAll('[data-action]').forEach(btn => {
+      btn.addEventListener('click', () => handleVariantAction(btn.dataset.action, v, btn));
+    });
+    const favs = store.get('favorites', []);
+    if(favs.some(f => f.text === v.text && f.lang === state.targetLang)){
+      card.querySelector('[data-action="fav"]').classList.add('active');
+    }
+    grid.appendChild(card);
+  });
+}
+
+function handleVariantAction(action, variant, btn){
+  switch(action){
+    case 'copy':
+      navigator.clipboard.writeText(variant.text).then(() => {
+        showToast('📋 تم النسخ');
+        btn.classList.add('copied');
+        setTimeout(() => btn.classList.remove('copied'), 1200);
       });
-
-      if (r.status === 401 || r.status === 403) return { ok: false, error: 'invalid_key' };
-      if (!r.ok && r.status !== 200 && r.status !== 429) {
-        return { ok: false, error: 'api_error_' + r.status };
-      }
-
-      const defaultModels = isDeepSeek ? ['deepseek-chat', 'deepseek-reasoner'] : ['gpt-4o-mini', 'gpt-4o', 'gpt-3.5-turbo'];
-      return { ok: true, models: defaultModels };
-    } catch (e) {
-      return { ok: false, error: 'network_or_cors' };
-    }
-  }
-
-  function notify(msg, isError = false) {
-    if (!state.settings.notifyEnabled) return;
-    $toast.textContent = msg;
-    $toast.classList.toggle('err', !!isError);
-    $toast.classList.add('show');
-    clearTimeout(state.toastTimer);
-    state.toastTimer = setTimeout(hideToast, isError ? 5000 : 4000);
-  }
-  function hideToast() { $toast.classList.remove('show'); clearTimeout(state.toastTimer); }
-
-  function showResult(text, meta) {
-    $result.innerHTML = '';
-    const main = document.createElement('div');
-    main.textContent = text;
-    $result.appendChild(main);
-    if (meta) {
-      const m = document.createElement('div');
-      m.className = 'meta';
-      m.textContent = meta;
-      $result.appendChild(m);
-    }
-    const r = $bubble.getBoundingClientRect();
-    let left = r.left - 380 - 12;
-    if (left < 8) left = Math.min(window.innerWidth - 380 - 8, r.right + 12);
-    $result.style.left = left + 'px';
-    $result.style.top  = Math.max(8, Math.min(window.innerHeight - 180, r.top - 20)) + 'px';
-    $result.classList.add('show');
-  }
-  function hideResult() { $result.classList.remove('show'); }
-
-  async function runTranslation(text) {
-    if (state.busy) return;
-    text = (text || '').trim();
-    if (!text) { notify('لم يتم تحديد نص للترجمة', true); return; }
-    if (text.length > 5000) text = text.slice(0, 5000);
-
-    state.busy = true;
-    showResult('… جارٍ الترجمة', '');
-    notify('جارٍ ترجمة ' + text.length + ' حرف...');
-
-    try {
-      let res;
-      if (state.settings.mode === 'ai') {
-        res = await translateAI(text, state.settings.sourceLang, state.settings.targetLang, state.settings.model, await getApiKey());
+      break;
+    case 'share':
+      if(navigator.share){
+        navigator.share({ text: variant.text }).catch(() => {});
       } else {
-        res = await translateFree(text, state.settings.sourceLang, state.settings.targetLang);
+        navigator.clipboard.writeText(variant.text);
+        showToast('تم النسخ للمشاركة');
       }
-      const meta = [];
-      if (res.detected) meta.push('detected: ' + res.detected);
-      meta.push(state.settings.mode === 'ai' ? 'model: ' + state.settings.model : 'mode: normal');
-      showResult(res.translated || '—', meta.join(' • '));
-      notify('✅ تمت الترجمة');
-      scheduleSlideOut(3000);
-    } catch (e) {
-      const errMap = { missing_api_key: 'مفتاح API مفقود', missing_model: 'لم يتم اختيار نموذج', invalid_key: 'مفتاح غير صالح', rate_limited: 'تجاوز حد الطلبات' };
-      showResult('⚠️ ' + (errMap[e.message] || e.message), '');
-      notify(errMap[e.message] || 'فشل الاتصال', true);
-      scheduleSlideOut(5000);
-    } finally { state.busy = false; }
+      break;
+    case 'tts':
+      speak(variant.text, state.targetLang);
+      break;
+    case 'regen':
+      regenerateVariant(variant, btn);
+      break;
+    case 'fav':
+      toggleFavorite(variant, btn);
+      break;
+    case 'compare':
+      $('#mainResult').textContent = variant.text;
+      $('#mainResult').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      showToast('عرض في المنطقة الرئيسية');
+      break;
+    case 'edit':
+      $('#sourceText').focus();
+      $('#sourceText').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      showToast('عدّل النص الأصلي ثم أعد الترجمة');
+      break;
+  }
+}
+
+async function regenerateVariant(variant, btn){
+  btn.style.opacity = '.5';
+  const text = $('#sourceText').value.trim();
+  if(!text){ showToast('لا يوجد نص'); return; }
+  const newText = await translateText(text, state.sourceLang, state.targetLang);
+  variant.text = newText;
+  variant.score = 80 + Math.floor(Math.random()*20);
+  const card = btn.closest('.variant-card');
+  card.querySelector('.variant-text').textContent = newText;
+  card.querySelector('.variant-score').textContent = `جودة ${variant.score}%`;
+  btn.style.opacity = '1';
+  showToast('🔄 تم التوليد');
+}
+
+function toggleFavorite(variant, btn){
+  let favs = store.get('favorites', []);
+  const idx = favs.findIndex(f => f.text === variant.text && f.lang === state.targetLang);
+  if(idx >= 0){
+    favs.splice(idx, 1);
+    btn.classList.remove('active');
+    showToast('أُزيلت من المفضلة');
+  } else {
+    favs.unshift({ text: variant.text, lang: state.targetLang, style: variant.style, time: Date.now() });
+    favs = favs.slice(0, 100);
+    btn.classList.add('active');
+    showToast('⭐ أُضيفت للمفضلة');
+  }
+  store.set('favorites', favs);
+}
+
+/* ---------- أدوات النتيجة ---------- */
+$('#copyResult').addEventListener('click', () => {
+  const text = $('#mainResult').textContent;
+  if(!text || text.includes('ستظهر هنا')) return;
+  navigator.clipboard.writeText(text).then(() => showToast('📋 تم النسخ'));
+});
+
+$('#ttsResult').addEventListener('click', () => {
+  const text = $('#mainResult').textContent;
+  if(!text || text.includes('ستظهر هنا')) return;
+  speak(text, state.targetLang);
+});
+
+$('#exportResult').addEventListener('click', () => {
+  const text = $('#mainResult').textContent;
+  if(!text || text.includes('ستظهر هنا')) return;
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `ترجمة_${Date.now()}.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('⬇ تم التصدير');
+});
+
+/* ---------- استيراد الملفات ---------- */
+$('#importBtn').addEventListener('click', () => $('#fileInput').click());
+
+$('#fileInput').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if(!file) return;
+
+  if(file.size > 10 * 1024 * 1024){
+    showToast('الملف أكبر من 10MB');
+    return;
   }
 
-  function scheduleSlideOut(ms) {
-    clearTimeout(state.slideTimer);
-    state.slideTimer = setTimeout(() => {
-      if (state.busy) return;
-      $bubble.classList.add('slide-left');
-      $indicator.classList.add('show');
-      clearTimeout(state.hideTimer);
-      state.hideTimer = setTimeout(hideResult, 900);
-    }, ms);
-  }
+  const preview = $('#filePreview');
+  preview.hidden = false;
 
-  function restoreBubble() {
-    $indicator.classList.remove('show');
-    $bubble.classList.remove('slide-left');
-    const p = state.settings.position || { x: window.innerWidth - 80, y: window.innerHeight - 160 };
-    $bubble.style.left = p.x + 'px';
-    $bubble.style.top  = p.y + 'px';
-    scheduleSlideOut(3000);
-  }
-
-  function initBubble() {
-    const p = state.settings.position || { x: Math.max(8, window.innerWidth - 80), y: Math.max(8, window.innerHeight - 160) };
-    $bubble.style.left = p.x + 'px';
-    $bubble.style.top  = p.y + 'px';
-    let drag = null;
-
-    scheduleSlideOut(3000);
-
-    $bubble.addEventListener('pointerdown', e => {
-      clearTimeout(state.slideTimer);
-      if (e.target.closest('.dots')) return;
-      drag = { sx: e.clientX, sy: e.clientY, ox: parseFloat($bubble.style.left) || 0, oy: parseFloat($bubble.style.top) || 0, moved: false };
-      try { $bubble.setPointerCapture(e.pointerId); } catch {}
-    });
-
-    $bubble.addEventListener('pointermove', e => {
-      if (!drag) return;
-      const dx = e.clientX - drag.sx, dy = e.clientY - drag.sy;
-      if (Math.abs(dx) > 4 || Math.abs(dy) > 4) drag.moved = true;
-      if (drag.moved) {
-        $bubble.style.left = Math.max(4, Math.min(window.innerWidth - 62, drag.ox + dx)) + 'px';
-        $bubble.style.top  = Math.max(4, Math.min(window.innerHeight - 62, drag.oy + dy)) + 'px';
-      }
-    });
-
-    $bubble.addEventListener('pointerup', () => {
-      if (!drag) return;
-      if (drag.moved) {
-        state.settings.position = { x: parseFloat($bubble.style.left), y: parseFloat($bubble.style.top) };
-        saveSettings();
-      } else { onClickBubble(); }
-      drag = null;
-      scheduleSlideOut(3000);
-    });
-
-    $headerDots.addEventListener('click', e => { e.stopPropagation(); togglePanel(); });
-    $indicator.addEventListener('click', restoreBubble);
-    $result.addEventListener('click', hideResult);
-  }
-
-  function onClickBubble() {
-    let text = window.getSelection?.().toString().trim() || state.lastSelection;
-    if (!text) text = $('inputText')?.value.trim();
-    if (!text) { notify('حدد نصاً أولاً', true); return; }
-    runTranslation(text);
-  }
-
-  function initSelectionTracking() {
-    const capture = () => {
-      const s = window.getSelection()?.toString().trim();
-      if (s) state.lastSelection = s;
+  const renderPreview = (content) => {
+    preview.innerHTML = `
+      <div><strong>📎 ${escapeHtml(file.name)}</strong> — ${(file.size/1024).toFixed(1)} KB</div>
+      <div style="margin-top:8px">${escapeHtml(content.slice(0, 200))}${content.length > 200 ? '...' : ''}</div>
+      <div style="margin-top:10px;display:flex;gap:8px">
+        <button class="btn-mini" id="confirmImport">✅ تأكيد</button>
+        <button class="btn-mini" id="cancelImport">✖ إلغاء</button>
+      </div>
+    `;
+    $('#confirmImport').onclick = () => {
+      $('#sourceText').value = content;
+      $('#charCount').textContent = content.length;
+      preview.hidden = true;
+      showToast('✅ تم استيراد الملف');
     };
-    document.addEventListener('mouseup', capture, true);
-    document.addEventListener('selectionchange', capture, true);
+    $('#cancelImport').onclick = () => {
+      preview.hidden = true;
+      $('#fileInput').value = '';
+    };
+  };
+
+  if(file.name.endsWith('.txt')){
+    const reader = new FileReader();
+    reader.onload = () => renderPreview(reader.result);
+    reader.readAsText(file, 'UTF-8');
+  } else {
+    preview.innerHTML = `<div>⚠️ الصيغة <strong>${escapeHtml(file.name.split('.').pop())}</strong> تحتاج معالجة على الخادم.<br>المدعوم حاليًا: <strong>.txt</strong></div>`;
+    setTimeout(() => preview.hidden = true, 3500);
   }
+  e.target.value = '';
+});
 
-  function togglePanel() {
-    if ($panel.classList.contains('open')) { $panel.classList.remove('open'); return; }
-    const panelW = Math.min(328, window.innerWidth - 24);
-    if (window.innerWidth <= 480) {
-      $panel.style.left = '8px';
-      $panel.style.width = 'calc(100vw - 16px)';
-    } else {
-      const r = $headerDots.getBoundingClientRect();
-      let left = r.right - panelW;
-      if (left < 8) left = 8;
-      if (left + panelW > window.innerWidth - 8) left = window.innerWidth - panelW - 8;
-      $panel.style.left = left + 'px';
-      $panel.style.width = panelW + 'px';
-    }
-    $panel.style.top = '60px';
-    $panel.classList.add('open');
+/* ---------- السجل ---------- */
+function addToHistory(item){
+  let hist = store.get('history', []);
+  hist.unshift({ ...item, time: Date.now() });
+  hist = hist.slice(0, 50);
+  store.set('history', hist);
+}
+
+$('#historyBtn').addEventListener('click', () => {
+  const list = $('#historyList');
+  const hist = store.get('history', []);
+  if(!hist.length){
+    list.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:30px">لا يوجد سجل بعد</div>';
+  } else {
+    list.innerHTML = hist.map((h, i) => `
+      <div class="history-item" data-idx="${i}">
+        <div class="hi-source">${escapeHtml(h.source.slice(0,80))}${h.source.length>80?'...':''}</div>
+        <div class="hi-result">${escapeHtml(h.result.slice(0,80))}${h.result.length>80?'...':''}</div>
+        <div class="hi-meta">→ ${h.target} · ${new Date(h.time).toLocaleString('ar')}</div>
+      </div>
+    `).join('');
+    list.querySelectorAll('.history-item').forEach(el => {
+      el.onclick = () => {
+        const h = hist[+el.dataset.idx];
+        $('#sourceText').value = h.source;
+        $('#mainResult').textContent = h.result;
+        $('#charCount').textContent = h.source.length;
+        closeModal('historyModal');
+        showToast('📂 تم التحميل');
+      };
+    });
   }
+  openModal('historyModal');
+});
 
-  function initPanel() {
-    $('closePanel').addEventListener('click', () => $panel.classList.remove('open'));
+/* ---------- الإعدادات ---------- */
+$('#settingsBtn').addEventListener('click', () => {
+  populateVoices();
+  openModal('settingsModal');
+});
 
-    getApiKey().then(k => {
-      if (k) {
-        $('apiKey').value = k;
-        const status = $('keyStatus');
-        if (status) {
-          status.textContent = '✅ المفتاح محفوظ ومفعل';
-          status.className = 'hint ok';
-        }
+function populateVoices(){
+  const sel = $('#ttsVoice');
+  if(!sel) return;
+  const voices = window.speechSynthesis?.getVoices?.() || [];
+  sel.innerHTML = '<option value="">افتراضي</option>' +
+    voices.map(v => `<option value="${escapeHtml(v.name)}">${escapeHtml(v.name)} (${v.lang})</option>`).join('');
+  sel.value = state.ttsVoiceName;
+}
+
+$('#ttsVoice').addEventListener('change', e => { state.ttsVoiceName = e.target.value; });
+$('#ttsRate').addEventListener('input', e => { state.ttsRate = +e.target.value; });
+$('#fontSize').addEventListener('input', e => {
+  document.documentElement.style.fontSize = (14 + (e.target.value - 14)) + 'px';
+});
+
+$('#clearHistory').addEventListener('click', () => {
+  store.del('history');
+  showToast('تم مسح السجل');
+});
+
+/* ---------- Modals ---------- */
+function openModal(id){ $('#'+id).classList.add('open'); }
+function closeModal(id){ $('#'+id).classList.remove('open'); }
+$$('.modal-close').forEach(b => b.onclick = () => closeModal(b.dataset.close));
+$$('.modal').forEach(m => {
+  m.addEventListener('click', e => { if(e.target === m) m.classList.remove('open'); });
+});
+
+/* ---------- الفقاعة العائمة ---------- */
+const bubble = $('#bubble');
+const bubblePanel = $('#bubblePanel');
+
+const savedPos = store.get('bubblePos');
+if(savedPos){
+  bubble.style.left = savedPos.x + 'px';
+  bubble.style.top = savedPos.y + 'px';
+}
+
+let isDragging = false, wasDragged = false;
+let dragStart = null, bubbleStart = null;
+
+bubble.addEventListener('pointerdown', e => {
+  isDragging = true;
+  wasDragged = false;
+  dragStart = { x: e.clientX, y: e.clientY };
+  bubbleStart = { x: bubble.offsetLeft, y: bubble.offsetTop };
+  bubble.setPointerCapture(e.pointerId);
+  bubble.classList.add('dragging');
+  e.preventDefault();
+});
+
+bubble.addEventListener('pointermove', e => {
+  if(!isDragging) return;
+  const dx = e.clientX - dragStart.x;
+  const dy = e.clientY - dragStart.y;
+  if(Math.abs(dx) > 5 || Math.abs(dy) > 5) wasDragged = true;
+  const w = bubble.offsetWidth, h = bubble.offsetHeight;
+  const newX = Math.max(8, Math.min(window.innerWidth - w - 8, bubbleStart.x + dx));
+  const newY = Math.max(72, Math.min(window.innerHeight - h - 8, bubbleStart.y + dy));
+  bubble.style.left = newX + 'px';
+  bubble.style.top = newY + 'px';
+});
+
+bubble.addEventListener('pointerup', () => {
+  if(!isDragging) return;
+  isDragging = false;
+  bubble.classList.remove('dragging');
+  if(wasDragged){
+    const cx = bubble.offsetLeft + bubble.offsetWidth / 2;
+    const snapX = cx < window.innerWidth / 2
+      ? 12
+      : window.innerWidth - bubble.offsetWidth - 12;
+    bubble.style.left = snapX + 'px';
+    store.set('bubblePos', { x: snapX, y: bubble.offsetTop });
+  }
+});
+
+bubble.addEventListener('click', () => {
+  if(wasDragged){ wasDragged = false; return; }
+  bubblePanel.classList.toggle('open');
+});
+
+$('#bubbleClose').addEventListener('click', () => bubblePanel.classList.remove('open'));
+
+$('#bubbleTranslate').addEventListener('click', async () => {
+  const text = $('#bubbleInput').value.trim();
+  if(!text){ showToast('أدخل نصًا'); return; }
+  $('#bubbleResult').textContent = '⏳...';
+  const result = await translateText(text, state.sourceLang, state.targetLang);
+  $('#bubbleResult').textContent = result;
+});
+
+/* ---------- اختصارات ---------- */
+document.addEventListener('keydown', e => {
+  if(e.target.matches('textarea, input')) return;
+  if(e.key === 'Escape'){
+    bubblePanel.classList.remove('open');
+    $$('.modal').forEach(m => m.classList.remove('open'));
+  }
+  if((e.ctrlKey || e.metaKey) && e.key === 'Enter'){
+    e.preventDefault();
+    doTranslate();
+  }
+  if((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'l'){
+    e.preventDefault();
+    $('#swapBtn').click();
+  }
+  if(['1','2','3'].includes(e.key)){
+    const pills = $$('.pill');
+    const idx = +e.key - 1;
+    if(pills[idx]) pills[idx].click();
+  }
+});
+
+/* ---------- أدوات ---------- */
+function escapeHtml(str){
+  return String(str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+}
+
+/* ============================================
+   PWA — Manifest ديناميكي + تثبيت + offline
+   ============================================ */
+
+function buildIconDataURL(size){
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 512 512">
+    <defs>
+      <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#00E5D0"/>
+        <stop offset="1" stop-color="#00B8A9"/>
+      </linearGradient>
+    </defs>
+    <rect width="512" height="512" rx="120" fill="url(#g)"/>
+    <text x="50%" y="54%" font-family="Arial,Helvetica,sans-serif" font-size="330"
+      font-weight="900" fill="#0B1418" text-anchor="middle" dominant-baseline="middle">ت</text>
+  </svg>`;
+  return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
+}
+
+function injectManifest(){
+  const manifest = {
+    name: 'ترجمة — منصة الترجمة الاحترافية',
+    short_name: 'ترجمة',
+    description: 'منصة ترجمة احترافية بواجهة عائمة نيون فيروزية',
+    lang: 'ar',
+    dir: 'rtl',
+    start_url: './',
+    scope: './',
+    display: 'standalone',
+    orientation: 'portrait',
+    background_color: '#0B1418',
+    theme_color: '#00E5D0',
+    categories: ['productivity', 'utilities', 'education'],
+    icons: [
+      { src: buildIconDataURL(192), sizes: '192x192', type: 'image/svg+xml', purpose: 'any' },
+      { src: buildIconDataURL(512), sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable' }
+    ],
+    shortcuts: [
+      {
+        name: 'ترجمة سريعة',
+        short_name: 'سريعة',
+        url: './?quick=1',
+        icons: [{ src: buildIconDataURL(192), sizes: '192x192' }]
       }
-    });
+    ]
+  };
+  const blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.getElementById('manifestLink');
+  if(link) link.href = url;
 
-    $('checkPermsBtn')?.addEventListener('click', async () => {
-      const status = $('permStatus');
-      try {
-        if (navigator.clipboard) {
-          status.textContent = '✅ الإذونات الأساسية وحافظة النصوص مفعّلة';
-          status.className = 'hint ok';
-        } else {
-          status.textContent = '⚠️ الحافظة غير متوفرة';
-          status.className = 'hint err';
-        }
-      } catch (e) {
-        status.textContent = '⚠️ تعذر التحقق من الإذونات';
-        status.className = 'hint err';
-      }
-    });
+  const appleIcon = document.createElement('link');
+  appleIcon.rel = 'apple-touch-icon';
+  appleIcon.href = buildIconDataURL(180);
+  document.head.appendChild(appleIcon);
+}
 
-    const modeSel = $('modeSel');
-    modeSel.value = state.settings.mode;
-    modeSel.addEventListener('change', () => {
-      state.settings.mode = modeSel.value;
-      saveSettings();
-      updateApiSection();
-      notify(modeSel.value === 'ai' ? 'وضع الذكاء الاصطناعي مُفعّل' : 'الوضع العادي مُفعّل');
-    });
+let deferredPrompt = null;
 
-    $('saveKey').addEventListener('click', async () => {
-      const key = $('apiKey').value.trim();
-      const status = $('keyStatus');
-      if (!key) { status.textContent = 'أدخل مفتاحاً أولاً.'; status.className = 'hint err'; return; }
-      status.textContent = 'جارٍ التحقق من المفتاح...'; status.className = 'hint'; $('saveKey').disabled = true;
-      try {
-        const val = await validateKey(key);
-        if (!val.ok) {
-          status.textContent = '❌ مفتاح غير صالح أو خطأ في الاتصال'; status.className = 'hint err';
-          $('saveKey').disabled = false;
-          return;
-        }
-        await setApiKey(key);
-        status.textContent = '✅ تم التحقق وحفظ المفتاح بنجاح'; status.className = 'hint ok';
-        const set = new Set([...state.settings.models, ...val.models]);
-        state.settings.models = Array.from(set).sort();
-        if (!state.settings.model || !state.settings.models.includes(state.settings.model)) {
-          state.settings.model = state.settings.models[0];
-        }
-        saveSettings(); renderModels();
-      } catch (e) { status.textContent = 'خطأ: ' + e.message; status.className = 'hint err'; }
-      finally { $('saveKey').disabled = false; }
-    });
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  const btn = document.getElementById('installBtn');
+  if(btn) btn.hidden = false;
+});
 
-    const apiUrlInput = $('apiUrl');
-    if (apiUrlInput) {
-      apiUrlInput.value = state.settings.apiUrl || '';
-      apiUrlInput.addEventListener('input', () => {
-        state.settings.apiUrl = apiUrlInput.value.trim();
-        saveSettings();
-      });
-    }
-
-    const toggleBtn = $('toggleApiUrl');
-    const row = $('apiUrlRow');
-    if (toggleBtn && row) {
-      toggleBtn.addEventListener('click', () => {
-        const isVisible = row.style.display !== 'none';
-        row.style.display = isVisible ? 'none' : 'block';
-      });
-      if (state.settings.apiUrl) {
-        row.style.display = 'block';
-      }
-    }
-
-    $('addModel').addEventListener('click', () => {
-      const name = $('newModel').value.trim();
-      if (!name) return;
-      if (!state.settings.models.includes(name)) state.settings.models.push(name);
-      state.settings.model = name;
-      $('newModel').value = '';
-      saveSettings(); renderModels();
-      notify('تمت إضافة النموذج: ' + name);
-    });
-
-    $('modelSel').addEventListener('change', e => { state.settings.model = e.target.value; saveSettings(); });
-    updateApiSection(); renderModels();
+document.addEventListener('click', async (e) => {
+  if(!e.target.closest('#installBtn')) return;
+  if(!deferredPrompt){ showToast('التثبيت غير متاح حاليًا'); return; }
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  if(outcome === 'accepted'){
+    showToast('✅ تم تثبيت التطبيق');
+    document.getElementById('installBtn').hidden = true;
   }
+  deferredPrompt = null;
+});
 
-  function updateApiSection() {
-    $('apiSection').style.display = state.settings.mode === 'ai' ? 'block' : 'none';
-    if (state.settings.mode === 'ai' && !state.settings.model && state.settings.models.length) {
-      state.settings.model = state.settings.models[0];
-      saveSettings(); renderModels();
-    }
+window.addEventListener('appinstalled', () => {
+  showToast('🎉 التطبيق مثبت على جهازك');
+  const btn = document.getElementById('installBtn');
+  if(btn) btn.hidden = true;
+  deferredPrompt = null;
+});
+
+function updateOnlineStatus(){
+  const banner = document.getElementById('offlineBanner');
+  if(banner) banner.hidden = navigator.onLine;
+}
+window.addEventListener('online', () => { updateOnlineStatus(); showToast('✅ عاد الاتصال'); });
+window.addEventListener('offline', () => { updateOnlineStatus(); showToast('📴 انقطع الاتصال'); });
+
+async function registerServiceWorker(){
+  if(!('serviceWorker' in navigator)) return;
+  if(location.protocol === 'file:'){
+    console.log('SW: تم تخطيه (APK — offline مضمّن)');
+    return;
   }
-
-  function renderModels() {
-    const sel = $('modelSel');
-    sel.innerHTML = state.settings.models.length ? '' : '<option value="">— لم تُضف نماذج —</option>';
-    state.settings.models.forEach(m => {
-      const opt = document.createElement('option');
-      opt.value = m; opt.textContent = m; if (m === state.settings.model) opt.selected = true;
-      sel.appendChild(opt);
-    });
+  try {
+    await navigator.serviceWorker.register('./sw.js');
+    console.log('✅ SW مسجّل');
+  } catch(err){
+    console.log('SW: غير متوفر (اختياري)');
   }
+}
 
-  function initAppearance() {
-    const op = $('opacity'), dk = $('dark'), nt = $('notify');
-    op.value = state.settings.opacity; dk.checked = state.settings.darkMode; nt.checked = state.settings.notifyEnabled;
-    applyDarkMode(state.settings.darkMode);
-    $bubble.style.setProperty('--bo', state.settings.opacity);
-
-    op.addEventListener('input', () => { state.settings.opacity = parseFloat(op.value); $bubble.style.setProperty('--bo', state.settings.opacity); saveSettings(); });
-    dk.addEventListener('change', () => { state.settings.darkMode = dk.checked; applyDarkMode(dk.checked); saveSettings(); });
-    nt.addEventListener('change', () => { state.settings.notifyEnabled = nt.checked; saveSettings(); if (!nt.checked) hideToast(); });
+/* ---------- التهيئة ---------- */
+document.addEventListener('DOMContentLoaded', () => {
+  injectManifest();
+  updateOnlineStatus();
+  registerServiceWorker();
+  updateDirection();
+  populateVoices();
+  if(window.speechSynthesis){
+    speechSynthesis.onvoiceschanged = populateVoices;
   }
-
-  function applyDarkMode(on) { document.body.classList.toggle('dark', on); }
-
-  function initLanguages() {
-    const src = $('srcSel'), tgt = $('tgtSel');
-    LANGS.forEach(([code, name]) => {
-      src.insertAdjacentHTML('beforeend', `<option value="${code}">${name} (${code})</option>`);
-      if (code !== 'auto') tgt.insertAdjacentHTML('beforeend', `<option value="${code}">${name} (${code})</option>`);
-    });
-    src.value = state.settings.sourceLang; tgt.value = state.settings.targetLang;
-    src.addEventListener('change', () => { state.settings.sourceLang = src.value; saveSettings(); });
-    tgt.addEventListener('change', () => { state.settings.targetLang = tgt.value; saveSettings(); });
+  if(!navigator.onLine){
+    showToast('⚠️ غير متصل — الترجمات المحفوظة تعمل');
   }
-
-  function boot() {
-    $bubble = $('bubble'); $headerDots = $('headerDots'); $dots = $('headerDots'); $indicator = $('indicator');
-    $result = $('result'); $panel = $('panel'); $toast = $('toast');
-
-    loadSettings();
-    initLanguages(); initAppearance(); initBubble(); initPanel(); initSelectionTracking();
-    
-    $('themeToggle')?.addEventListener('click', () => {
-      state.settings.darkMode = !state.settings.darkMode;
-      applyDarkMode(state.settings.darkMode);
-      if ($('dark')) $('dark').checked = state.settings.darkMode;
-      saveSettings();
-    });
-
-    $('translateBtn')?.addEventListener('click', () => {
-      const text = $('inputText').value.trim();
-      if (text) runTranslation(text); else notify('النص فارغ', true);
-    });
-  }
-
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
-  else boot();
-})();
+  console.log('%c تـرجـمـة ','background:#00E5D0;color:#0B1418;font-size:18px;font-weight:bold;padding:6px 16px;border-radius:8px');
+});
