@@ -28,7 +28,7 @@
   ];
 
   const DEFAULTS = {
-    targetLang: 'ar', sourceLang: 'auto', mode: 'normal', model: '', models: [],
+    targetLang: 'ar', sourceLang: 'auto', mode: 'normal', model: 'gpt-4o-mini', models: ['gpt-4o-mini', 'gpt-4o', 'deepseek-chat'],
     notifyEnabled: true, opacity: 0.92, darkMode: false, position: null, apiUrl: ''
   };
 
@@ -40,7 +40,7 @@
   };
 
   const $ = id => document.getElementById(id);
-  let $bubble, $headerDots,$dots, $indicator,$result, $panel,$toast;
+  let $bubble, $headerDots, $dots, $indicator, $result, $panel, $toast;
 
   function getDeviceKey() {
     let k = localStorage.getItem(LS.DEVICE);
@@ -145,7 +145,7 @@
     if (key.length < 3) return { ok: false, error: 'invalid_key' };
 
     try {
-      const isDeepSeek = state.settings.model.toLowerCase().includes('deepseek') || (state.settings.apiUrl && state.settings.apiUrl.includes('deepseek'));
+      const isDeepSeek = (state.settings.model && state.settings.model.toLowerCase().includes('deepseek')) || (state.settings.apiUrl && state.settings.apiUrl.includes('deepseek'));
       const customUrl = state.settings.apiUrl ? state.settings.apiUrl.trim() : '';
       let endpoint;
       let actualModel = state.settings.model || (isDeepSeek ? 'deepseek-chat' : 'gpt-4o-mini');
@@ -160,10 +160,13 @@
       const r = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + key },
-        body: JSON.stringify({ model: actualModel, messages: [{ role: 'user', content: 'Hi' }], max_tokens: 5 })
+        body: JSON.stringify({ model: actualModel, messages: [{ role: 'user', content: 'Hi' }], max_tokens: 1 })
       });
 
-      if (r.status === 401) return { ok: false, error: 'invalid_key' };
+      if (r.status === 401 || r.status === 403) return { ok: false, error: 'invalid_key' };
+      if (!r.ok && r.status !== 200 && r.status !== 429) {
+        return { ok: false, error: 'api_error_' + r.status };
+      }
 
       const defaultModels = isDeepSeek ? ['deepseek-chat', 'deepseek-reasoner'] : ['gpt-4o-mini', 'gpt-4o', 'gpt-3.5-turbo'];
       return { ok: true, models: defaultModels };
@@ -175,7 +178,8 @@
   function notify(msg, isError = false) {
     if (!state.settings.notifyEnabled) return;
     $toast.textContent = msg;
-    $toast.classList.toggle('err', !!isError);$toast.classList.add('show');
+    $toast.classList.toggle('err', !!isError);
+    $toast.classList.add('show');
     clearTimeout(state.toastTimer);
     state.toastTimer = setTimeout(hideToast, isError ? 5000 : 4000);
   }
@@ -196,7 +200,8 @@
     let left = r.left - 380 - 12;
     if (left < 8) left = Math.min(window.innerWidth - 380 - 8, r.right + 12);
     $result.style.left = left + 'px';
-    $result.style.top  = Math.max(8, Math.min(window.innerHeight - 180, r.top - 20)) + 'px';$result.classList.add('show');
+    $result.style.top  = Math.max(8, Math.min(window.innerHeight - 180, r.top - 20)) + 'px';
+    $result.classList.add('show');
   }
   function hideResult() { $result.classList.remove('show'); }
 
@@ -235,22 +240,26 @@
     clearTimeout(state.slideTimer);
     state.slideTimer = setTimeout(() => {
       if (state.busy) return;
-      $bubble.classList.add('slide-left');$indicator.classList.add('show');
+      $bubble.classList.add('slide-left');
+      $indicator.classList.add('show');
       clearTimeout(state.hideTimer);
       state.hideTimer = setTimeout(hideResult, 900);
     }, ms);
   }
 
   function restoreBubble() {
-    $indicator.classList.remove('show');$bubble.classList.remove('slide-left');
+    $indicator.classList.remove('show');
+    $bubble.classList.remove('slide-left');
     const p = state.settings.position || { x: window.innerWidth - 80, y: window.innerHeight - 160 };
-    $bubble.style.left = p.x + 'px';$bubble.style.top  = p.y + 'px';
+    $bubble.style.left = p.x + 'px';
+    $bubble.style.top  = p.y + 'px';
     scheduleSlideOut(3000);
   }
 
   function initBubble() {
     const p = state.settings.position || { x: Math.max(8, window.innerWidth - 80), y: Math.max(8, window.innerHeight - 160) };
-    $bubble.style.left = p.x + 'px';$bubble.style.top  = p.y + 'px';
+    $bubble.style.left = p.x + 'px';
+    $bubble.style.top  = p.y + 'px';
     let drag = null;
 
     scheduleSlideOut(3000);
@@ -267,7 +276,8 @@
       const dx = e.clientX - drag.sx, dy = e.clientY - drag.sy;
       if (Math.abs(dx) > 4 || Math.abs(dy) > 4) drag.moved = true;
       if (drag.moved) {
-        $bubble.style.left = Math.max(4, Math.min(window.innerWidth - 62, drag.ox + dx)) + 'px';$bubble.style.top  = Math.max(4, Math.min(window.innerHeight - 62, drag.oy + dy)) + 'px';
+        $bubble.style.left = Math.max(4, Math.min(window.innerWidth - 62, drag.ox + dx)) + 'px';
+        $bubble.style.top  = Math.max(4, Math.min(window.innerHeight - 62, drag.oy + dy)) + 'px';
       }
     });
 
@@ -282,7 +292,8 @@
     });
 
     $headerDots.addEventListener('click', e => { e.stopPropagation(); togglePanel(); });
-    $indicator.addEventListener('click', restoreBubble);$result.addEventListener('click', hideResult);
+    $indicator.addEventListener('click', restoreBubble);
+    $result.addEventListener('click', hideResult);
   }
 
   function onClickBubble() {
@@ -302,22 +313,25 @@
   }
 
   function togglePanel() {
-    if ($panel.classList.contains('open')) {$panel.classList.remove('open'); return; }
+    if ($panel.classList.contains('open')) { $panel.classList.remove('open'); return; }
     const panelW = Math.min(328, window.innerWidth - 24);
     if (window.innerWidth <= 480) {
-      $panel.style.left = '8px';$panel.style.width = 'calc(100vw - 16px)';
+      $panel.style.left = '8px';
+      $panel.style.width = 'calc(100vw - 16px)';
     } else {
       const r = $headerDots.getBoundingClientRect();
       let left = r.right - panelW;
       if (left < 8) left = 8;
       if (left + panelW > window.innerWidth - 8) left = window.innerWidth - panelW - 8;
-      $panel.style.left = left + 'px';$panel.style.width = panelW + 'px';
+      $panel.style.left = left + 'px';
+      $panel.style.width = panelW + 'px';
     }
-    $panel.style.top = '60px';$panel.classList.add('open');
+    $panel.style.top = '60px';
+    $panel.classList.add('open');
   }
 
   function initPanel() {
-    $('closePanel').addEventListener('click', () =>$panel.classList.remove('open'));
+    $('closePanel').addEventListener('click', () => $panel.classList.remove('open'));
 
     getApiKey().then(k => {
       if (k) {
@@ -433,7 +447,7 @@
   }
 
   function initAppearance() {
-    const op = $('opacity'), dk = $('dark'), nt =$('notify');
+    const op = $('opacity'), dk = $('dark'), nt = $('notify');
     op.value = state.settings.opacity; dk.checked = state.settings.darkMode; nt.checked = state.settings.notifyEnabled;
     applyDarkMode(state.settings.darkMode);
     $bubble.style.setProperty('--bo', state.settings.opacity);
@@ -446,7 +460,7 @@
   function applyDarkMode(on) { document.body.classList.toggle('dark', on); }
 
   function initLanguages() {
-    const src = $('srcSel'), tgt =$('tgtSel');
+    const src = $('srcSel'), tgt = $('tgtSel');
     LANGS.forEach(([code, name]) => {
       src.insertAdjacentHTML('beforeend', `<option value="${code}">${name} (${code})</option>`);
       if (code !== 'auto') tgt.insertAdjacentHTML('beforeend', `<option value="${code}">${name} (${code})</option>`);
@@ -457,8 +471,8 @@
   }
 
   function boot() {
-    $bubble =$('bubble'); $headerDots =$('headerDots'); $dots =$('headerDots'); $indicator =$('indicator');
-    $result =$('result'); $panel =$('panel'); $toast =$('toast');
+    $bubble = $('bubble'); $headerDots = $('headerDots'); $dots = $('headerDots'); $indicator = $('indicator');
+    $result = $('result'); $panel = $('panel'); $toast = $('toast');
 
     loadSettings();
     initLanguages(); initAppearance(); initBubble(); initPanel(); initSelectionTracking();
@@ -466,7 +480,7 @@
     $('themeToggle')?.addEventListener('click', () => {
       state.settings.darkMode = !state.settings.darkMode;
       applyDarkMode(state.settings.darkMode);
-      if ($('dark'))$('dark').checked = state.settings.darkMode;
+      if ($('dark')) $('dark').checked = state.settings.darkMode;
       saveSettings();
     });
 
