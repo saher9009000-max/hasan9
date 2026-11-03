@@ -3,105 +3,163 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>منصة ترجمة | Tarjama</title>
+    <title>منصة ترجمة | Tarjama Pro</title>
+    <!-- ربط ملف التنسيق -->
     <link rel="stylesheet" href="style.css">
+    <!-- مكتبة الأيقونات (FontAwesome) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
 
     <!-- 10. ترويسة الصفحة -->
     <header class="app-header">
-        <div class="user-status">
-            <span class="status-dot"></span>
-            <div class="avatar">م</div>
+        <div class="logo-section">
+            <h1 class="brand-name">ترجمة</h1>
+            <div class="brand-logo"></div>
         </div>
-        <div class="logo-area">
-            <h1 class="brand-text">ترجمة</h1>
-            <div class="logo-icon"></div>
+        <div class="user-status">
+            <span class="status-indicator"></span>
+            <span class="user-label">متصل</span>
+            <div class="avatar-circle">م</div>
         </div>
     </header>
 
-    <!-- المحتوى الرئيسي -->
-    <main class="app-container">
+    <main class="main-content">
         
-        <!-- 3. عناصر التحكم باللغات -->
-        <div class="lang-controls">
-            <select class="neon-select" id="sourceLang">
-                <option value="auto">اكتشاف تلقائي</option>
-                <option value="ar">العربية</option>
-                <option value="en">English</option>
-            </select>
-            
-            <button class="swap-btn neon-circle" id="swapBtn" title="تبديل اللغات">⇄</button>
-            
-            <select class="neon-select" id="targetLang">
-                <option value="en">English</option>
-                <option value="ar">العربية</option>
-            </select>
-        </div>
-
-        <!-- 4 & 5. أنماط الترجمة والأوضاع الإضافية -->
-        <div class="modes-container">
-            <div class="style-modes">
-                <button class="mode-pill active" data-mode="literal">دقيقة وباشرة</button>
-                <button class="mode-pill" data-mode="fluent">طبيعية وسلسة</button>
-                <button class="mode-pill" data-mode="formal">رسمية</button>
+        <!-- 3. عناصر التحكم باللغات (خانتان منفصلتان) -->
+        <section class="language-controls">
+            <div class="lang-box source-lang">
+                <label>اللغة المصدر</label>
+                <select id="sourceLangSelect">
+                    <option value="auto">اكتشاف تلقائي </option>
+                    <option value="ar">العربية</option>
+                    <option value="en">English</option>
+                    <option value="fr">Français</option>
+                </select>
             </div>
-            <div class="extra-modes">
+
+            <button class="swap-btn neon-circle" id="swapBtn" title="تبديل اللغات">
+                <i class="fas fa-exchange-alt"></i>
+            </button>
+
+            <div class="lang-box target-lang">
+                <label>اللغة الهدف</label>
+                <select id="targetLangSelect">
+                    <option value="en">English</option>
+                    <option value="ar">العربية</option>
+                    <option value="fr">Français</option>
+                </select>
+            </div>
+        </section>
+
+        <!-- 4 & 5. أنماط وأوضاع الترجمة -->
+        <section class="modes-section">
+            <div class="styles-group">
+                <button class="mode-btn active" data-style="literal">دقيقة وباشرة</button>
+                <button class="mode-btn" data-style="fluent">طبيعية وسلسة</button>
+                <button class="mode-btn" data-style="formal">رسمية</button>
+            </div>
+            <div class="extra-toggles">
                 <label class="neon-toggle">
                     <input type="checkbox" id="quietMode">
-                    <span class="toggle-slider"></span>
-                    <span class="toggle-label">هادئة</span>
+                    <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                    <span class="toggle-text">وضع هادئة (مختصر)</span>
                 </label>
-                <button class="ai-btn neon-pill" id="aiEnhance">✨ ترجمة بالذكاء الاصطناعي</button>
+                <button class="ai-enhance-btn neon-pill">
+                    <i class="fas fa-robot"></i> ترجمة بالذكاء الاصطناعي
+                </button>
             </div>
-        </div>
+        </section>
 
-        <!-- 6. حقول الإدخال والاستيراد -->
-        <div class="input-section">
-            <div class="drop-zone neon-box" id="dropZone">
-                <p>اسحب ملف (.txt, .docx, .pdf) أو انقر للاستيراد</p>
-                <input type="file" id="fileInput" accept=".txt,.docx,.pdf" hidden>
+        <!-- 6. حقول الإدخال والاستيراد (هيكلية جديدة ومنفصلة) -->
+        <section class="input-area">
+            
+            <!-- حقل النص الرئيسي + زر الصق الذكي -->
+            <div class="input-container main-input-wrapper">
+                <textarea id="sourceText" class="neon-rounded-box main-textarea" placeholder="اكتب أو الصق النص هنا..."></textarea>
+                <button id="smartPasteBtn" class="smart-paste-btn neon-circle" title="لصق ذكي بالـ AI">
+                    <i class="fas fa-magic"></i>
+                </button>
             </div>
-            <textarea class="neon-box main-input" id="sourceText" placeholder="اكتب أو الصق النص هنا..."></textarea>
-            <textarea class="neon-box summary-input" id="summaryText" placeholder="ملخص النص..." rows="2"></textarea>
-        </div>
 
-        <!-- 7. منطقة النتيجة -->
-        <div class="output-section">
-            <div class="result-header">
-                <span>النتيجة</span>
-                <div class="action-btns">
-                    <button class="icon-btn neon-circle" title="نسخ">📋</button>
-                    <button class="icon-btn neon-circle" title="تصدير">💾</button>
+            <!-- حقل الملخص المنفصل -->
+            <div class="input-container summary-wrapper">
+                <label>ملخص سريع (اختياري)</label>
+                <textarea id="summaryText" class="neon-rounded-box summary-textarea" placeholder="أدخل ملخصاً للنص إذا لزم الأمر..."></textarea>
+            </div>
+
+            <!-- خانة إعدادات الذكاء الاصطناعي المنفصلة -->
+            <div class="input-container ai-settings-wrapper">
+                <label><i class="fas fa-sliders-h"></i> إعدادات نموذج الذكاء الاصطناعي</label>
+                <div class="ai-config-box neon-rounded-box">
+                    <div class="config-item">
+                        <span>درجة الإبداع:</span>
+                        <input type="range" min="0" max="1" step="0.1" value="0.7">
+                    </div>
+                    <div class="config-item">
+                        <span>طول الرد:</span>
+                        <select class="mini-select">
+                            <option>متوازن</option>
+                            <option>مطول</option>
+                            <option>مختصر</option>
+                        </select>
+                    </div>
                 </div>
             </div>
-            <div class="neon-box result-display" id="mainResult">
-                ستظهر الترجمة هنا...
-            </div>
-        </div>
 
-        <!-- 8 & 9. مصفوفة النتائج (6 خانات) وأدواتها -->
-        <div class="matrix-grid">
-            <!-- سيتم توليدها عبر JavaScript -->
-        </div>
+            <!-- استيراد الملفات -->
+            <div class="file-import-zone neon-rounded-box" id="dropZone">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <p>اسحب ملفات (.txt, .docx, .pdf) أو انقر للاستيراد</p>
+                <input type="file" id="fileInput" hidden accept=".txt,.docx,.pdf">
+            </div>
+
+        </section>
+
+        <!-- 7. منطقة النتيجة الرئيسية -->
+        <section class="output-area">
+            <div class="result-header">
+                <h3>النتيجة النهائية</h3>
+                <div class="result-actions">
+                    <button class="icon-btn neon-circle" title="نسخ الكل"><i class="fas fa-copy"></i></button>
+                    <button class="icon-btn neon-circle" title="تصدير"><i class="fas fa-file-export"></i></button>
+                </div>
+            </div>
+            <div id="mainResult" class="neon-rounded-box result-display">
+                ستظهر الترجمة الرئيسية هنا...
+            </div>
+        </section>
+
+        <!-- 8 & 9. مصفوفة النتائج (تدفق عمودي - 3 صفوف فقط) -->
+        <section class="results-matrix">
+            <h3>بدائل مقترحة</h3>
+            <div class="vertical-stack" id="matrixContainer">
+                <!-- سيتم توليد الخانات الثلاثة هنا عبر JavaScript -->
+            </div>
+        </section>
 
     </main>
 
     <!-- 2. واجهة الفقاعة العائمة -->
     <div class="floating-bubble" id="transBubble">
-        <div class="bubble-anchor"></div>
-        <div class="bubble-content">
-            <span class="bubble-text">ترجمة سريعة</span>
+        <div class="bubble-connector"></div>
+        <div class="bubble-body">
+            <span class="bubble-title">ترجمة فورية</span>
             <button class="bubble-close neon-circle">×</button>
         </div>
     </div>
 
-    <!-- 10. أزرار عائمة (FABs) -->
-    <div class="fab-container">
-        <button class="fab-btn neon-circle" id="historyFab" title="السجل">🕒</button>
-        <button class="fab-btn neon-circle" id="settingsFab" title="الإعدادات">⚙️</button>
+    <!-- 10. أزرار عائمة ثابتة (FABs) -->
+    <div class="fab-dock">
+        <button class="fab-btn neon-circle" id="historyFab" title="سجل الترجمات">
+            <i class="fas fa-history"></i>
+        </button>
+        <button class="fab-btn neon-circle" id="settingsFab" title="الإعدادات">
+            <i class="fas fa-cog"></i>
+        </button>
     </div>
 
+    <!-- ربط ملف الجافاسكريبت -->
     <script src="app.js"></script>
 </body>
 </html>
